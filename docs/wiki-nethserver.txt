@@ -1,0 +1,101 @@
+======ClamAV======
+[[https://www.clamav.net/|ClamAV]] is the open-source antivirus engine used by mail gateways, file servers and web applications to scan files for malware. This module runs the ClamAV daemon as a **scan service for the cluster**: Nextcloud's //Antivirus for files// app, ecoDMS, Samba or any other client that speaks the clamd protocol connects to it over TCP 3310.
+
+====Announcement and talks====
+The ClamAV app announcement TBA
+
+ClamAV is a community application from the [[ns8:tebbiworld_repository|tebbiworld]] repository. Documentation and source can be found on [[https://github.com/tebbiworld/ns8-clamav|Github]]
+
+=====What it does=====
+The NS8 Mail module ships its own clamd, but bound to ''127.0.0.1:11330'' of the mail node only — unusable for a Nextcloud on another node. This module runs the official ''clamav/clamav'' image (Cisco Talos) wherever it is needed and is reachable from every node of the cluster through the cluster VPN.
+
+  * clamd on TCP 3310 in the host network, with freshclam keeping the signatures current
+  * reachable from modules on the same node, from every node via the cluster VPN, and optionally from the LAN
+  * scan limits (file size, scan size, stream length) and the update schedule as settings
+  * live status on the settings page: engine and signature database version
+
+=====Architecture=====
+A single rootless container from the pinned official image.
+
+^ ^ ^
+| Port | TCP 3310 on all addresses of the node (host network) |
+| Volume ''clamav-db'' | signature database (~300 MB), refreshed by freshclam; not in the backup, re-downloaded when missing |
+| Memory | clamd keeps the signatures in RAM — plan **about 1 GB** for the node |
+
+Who can connect is decided by the node firewall, not by the module:
+
+^ Client ^ Address to use ^ Allowed ^
+| Module on the same node, slirp4netns network (NS8 Nextcloud) | ''10.0.2.2:3310'' | always |
+| Module on the same node, pasta network | ''host.containers.internal:3310'' | always |
+| Module or service on another node | ''<VPN address of this node>:3310'' (10.5.4.x, zone //trusted//) | always |
+| Clients in the LAN | ''<LAN address>:3310'' | only with **LAN access** enabled (opens 3310/tcp in the public zone) |
+
+One instance per node (fixed port). The Mail module's clamd on 11330 does not clash.
+
+=====Installation=====
+On the NethServer 8 cluster leader:
+
+<code bash>
+add-module ghcr.io/tebbiworld/clamav:1.0.0 1
+</code>
+
+Configure it (all settings have defaults; this keeps the LAN closed):
+
+<code bash>
+api-cli run module/clamav1/configure-module --data '{
+  "listen_lan": false,
+  "max_file_size_mb": 100,
+  "max_scan_size_mb": 400,
+  "stream_max_length_mb": 100,
+  "signature_checks_per_day": 12
+}'
+</code>
+
+The first start unpacks the signature database; clamd answers after a minute or two, and the settings page then shows engine and signature version together with the addresses clients should use.
+
+=====Settings=====
+
+^ Setting ^ clamd option ^ Default ^
+| LAN access | firewall public service ''3310/tcp'' | off |
+| Maximum file size (MB) | ''MaxFileSize'' — larger files are not scanned | 100 |
+| Maximum scan size (MB) | ''MaxScanSize'' — data scanned per file including unpacked archives | 400 |
+| Maximum stream length (MB) | ''StreamMaxLength'' — largest file a client may stream; not smaller than the maximum file size | 100 |
+| Signature update checks per day | ''freshclam --checks'' | 12 |
+
+=====Nextcloud=====
+Install the app //Antivirus for files// (''files_antivirus''), then under //Administration → Security → Antivirus for files//:
+
+^ Field ^ Value ^
+| Mode | **Daemon (host)** |
+| Host | ''10.0.2.2'' if Nextcloud runs on the same node as this module, otherwise the VPN address of the ClamAV node (shown on the settings page) |
+| Port | ''3310'' |
+| Maximum stream length | the module's value in bytes (default 100 MB = ''104857600'') |
+
+Upload the [[https://www.eicar.org/download-anti-malware-testfile/|EICAR test file]] to confirm the connection: Nextcloud refuses it with a virus warning.
+
+=====Backup=====
+The NS8 backup contains ''state/environment'' and ''state/clamav.env'' only. The signature database is not backed up on purpose; after a restore the container downloads it again.
+
+=====Licences and trademarks=====
+Unofficial, community-built package, not affiliated with or endorsed by Cisco Talos or the ClamAV project. "ClamAV" is a trademark of Cisco Systems, Inc. and is used here only to identify the packaged software; the module uses its own neutral logo.
+
+ClamAV is licensed GPL-2.0; the official image is pulled at runtime and not redistributed. The module's own code is licensed %%GPL%%-3.0-or-later.
+
+=====Links=====
+
+  * [[https://docs.clamav.net/|ClamAV documentation]]
+  * [[https://github.com/Cisco-Talos/clamav-docker|Official container image]]
+  * [[https://docs.nextcloud.com/server/latest/admin_manual/configuration_server/antivirus_configuration.html|Nextcloud antivirus configuration]]
+  * [[https://github.com/tebbiworld/ns8-clamav|Module on Github]]
+  * [[https://github.com/tebbiworld/ns8-clamav/issues|Bug reports]]
+
+=====Disclaimer=====
+Private hobby project, shared as-is. No warranty, no guaranteed support, use at your own risk.
+
+----
+{{tag>application}}
+{{tag>category:Security}}
+{{tag>status:Alpha}}
+{{tag>certlevel:1}}
+{{tag>repo:tebbiworld}}
+{{tag>description:"ClamAV antivirus daemon as a scan service for the cluster (Nextcloud and other modules)"}}
