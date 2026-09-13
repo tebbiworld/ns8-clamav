@@ -1,0 +1,56 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Configure clamav",
+    "$id": "http://nethserver.org/json-schema/task/input/clamav/configure-module",
+    "description": "Configure the ClamAV module",
+    "examples": [
+        {
+            "listen_lan": false,
+            "max_file_size_mb": 100,
+            "max_scan_size_mb": 400,
+            "stream_max_length_mb": 100,
+            "signature_checks_per_day": 12
+        }
+    ],
+    "type": "object",
+    "properties": {
+        "listen_lan": {
+            "type": "boolean",
+            "title": "LAN access",
+            "description": "Open TCP 3310 in the node firewall (public zone) so clients outside the cluster can use the scanner. Loopback and the cluster VPN are always allowed.",
+            "default": false
+        },
+        "max_file_size_mb": {
+            "type": "integer",
+            "title": "Maximum file size (MB)",
+            "description": "Files larger than this are not scanned (clamd MaxFileSize).",
+            "minimum": 1,
+            "maximum": 4000,
+            "default": 100
+        },
+        "max_scan_size_mb": {
+            "type": "integer",
+            "title": "Maximum scan size (MB)",
+            "description": "Maximum amount of data scanned per file, including unpacked archive contents (clamd MaxScanSize).",
+            "minimum": 1,
+            "maximum": 4000,
+            "default": 400
+        },
+        "stream_max_length_mb": {
+            "type": "integer",
+            "title": "Maximum stream length (MB)",
+            "description": "Largest file a client may stream to the daemon (clamd StreamMaxLength). Must not be smaller than the maximum file size; match it with the client's limit (e.g. Nextcloud's 'maximum stream length').",
+            "minimum": 1,
+            "maximum": 4000,
+            "default": 100
+        },
+        "signature_checks_per_day": {
+            "type": "integer",
+            "title": "Signature update checks per day",
+            "description": "How often freshclam checks for new signature databases.",
+            "minimum": 1,
+            "maximum": 48,
+            "default": 12
+        }
+    }
+}

@@ -1,0 +1,53 @@
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# ClamAV daemon for the cluster: one rootless container from the official
+# docker.io/clamav/clamav image (pinned through org.nethserver.images ->
+# ${CLAMAV_IMAGE}). The image starts freshclam (signature updates) and clamd.
+#
+# Networking: host network, clamd listens on TCP 3310 on every address of the
+# node. Reachable from
+#   - this node's loopback (127.0.0.1) - for other modules on the same node:
+#     10.0.2.2 (slirp4netns modules such as Nextcloud) or
+#     host.containers.internal (pasta modules),
+#   - the cluster VPN address of the node (10.5.4.x, firewall zone "trusted"),
+#   - the LAN address only when "LAN access" is enabled (firewall opening).
+#
+# Configuration comes from state/clamav.env (CLAMD_CONF_* variables applied by
+# the image entrypoint). The signature database lives in the clamav-db volume;
+# it is re-downloaded when missing and therefore not part of the backup.
+
+[Unit]
+Description=ClamAV daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+# first start downloads the signature database (~300 MB) before clamd answers
+TimeoutStartSec=900
+TimeoutStopSec=60
+ExecStartPre=/bin/touch %S/state/clamav.env
+ExecStartPre=/bin/rm -f %t/clamav.pid %t/clamav.ctr-id
+ExecStart=/usr/bin/podman run \
+    --conmon-pidfile %t/clamav.pid \
+    --cidfile %t/clamav.ctr-id \
+    --cgroups=no-conmon \
+    --replace -d --name clamav \
+    --network=host \
+    --volume clamav-db:/var/lib/clamav:z \
+    --env-file %S/state/clamav.env \
+    ${CLAMAV_IMAGE}
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/clamav.ctr-id -t 30
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/clamav.ctr-id
+PIDFile=%t/clamav.pid
+Type=forking
+SyslogIdentifier=%u
+
+[Install]
+WantedBy=default.target

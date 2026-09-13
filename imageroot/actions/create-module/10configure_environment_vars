@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Defaults for a fresh instance; configure-module applies the real settings.
+
+import agent
+
+agent.set_env("LISTEN_LAN", "false")
+agent.set_env("MAX_FILE_SIZE_MB", "100")
+agent.set_env("MAX_SCAN_SIZE_MB", "400")
+agent.set_env("STREAM_MAX_LENGTH_MB", "100")
+agent.set_env("SIGNATURE_CHECKS_PER_DAY", "12")

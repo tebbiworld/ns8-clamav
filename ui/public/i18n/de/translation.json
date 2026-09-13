@@ -1,0 +1,83 @@
+{
+    "common": {
+        "required": "Erforderlich",
+        "processing": "Verarbeitung läuft..."
+    },
+    "status": {
+        "title": "Status",
+        "app_instance": "App-Instanz",
+        "services": "Dienst | Dienste",
+        "app_images": "App-Abbild | App-Abbilder",
+        "app_volumes": "App-Volume | App-Volumes",
+        "installation_node": "Knoten der Installation",
+        "node": "Knoten",
+        "name": "Name",
+        "size": "Größe",
+        "created": "Erstellt",
+        "mount": "Mount",
+        "no_services": "Keine Dienste",
+        "no_images": "Keine Abbilder",
+        "no_volumes": "Keine Volumes"
+    },
+    "settings": {
+        "title": "Einstellungen",
+        "configure_instance": "{instance} konfigurieren",
+        "save": "Speichern",
+        "enabled": "Aktiviert",
+        "disabled": "Deaktiviert",
+        "daemon_up_title": "ClamAV {engine} läuft",
+        "daemon_up_desc": "Signaturdatenbank {sigs} vom {date}.",
+        "daemon_down_title": "clamd antwortet nicht",
+        "daemon_down_desc": "Der erste Start lädt die Signaturdatenbank (ca. 300 MB) und kann einige Minuten dauern. Bleibt es dabei, das Dienstprotokoll prüfen.",
+        "access_section": "Zugriff",
+        "listen_lan": "LAN-Zugriff (TCP 3310 in der Knoten-Firewall öffnen)",
+        "endpoints_title": "Wo Clients diesen Scanner erreichen (Modus: Daemon / Host, Port 3310)",
+        "ep_same_node_slirp": "Modul auf diesem Knoten mit slirp4netns-Netz (Nextcloud):",
+        "ep_same_node_pasta": "Modul auf diesem Knoten mit pasta-Netz:",
+        "ep_vpn": "Jeder Knoten des Clusters (VPN):",
+        "ep_lan": "Clients im LAN:",
+        "ep_hint": "Loopback und Cluster-VPN sind immer erlaubt; die LAN-Adresse nur bei aktiviertem LAN-Zugriff.",
+        "limits_section": "Scan-Grenzen",
+        "max_file_size_mb": "Maximale Dateigrösse (MB)",
+        "max_file_size_mb_helper": "Grössere Dateien werden nicht gescannt (clamd MaxFileSize).",
+        "max_scan_size_mb": "Maximale Scan-Grösse (MB)",
+        "max_scan_size_mb_helper": "Pro Datei gescannte Datenmenge inklusive entpackter Archive (clamd MaxScanSize).",
+        "stream_max_length_mb": "Maximale Stream-Länge (MB)",
+        "stream_max_length_mb_helper": "Grösste Datei, die ein Client an den Daemon streamen darf (clamd StreamMaxLength). Nicht kleiner als die maximale Dateigrösse; im Client denselben Wert setzen (Nextcloud: „Maximale Stream-Länge“ in Bytes).",
+        "signature_checks_per_day": "Signatur-Updates pro Tag",
+        "signature_checks_per_day_helper": "So oft prüft freshclam database.clamav.net pro Tag.",
+        "nextcloud_hint_title": "Nextcloud",
+        "nextcloud_hint_desc": "App „Antivirus für Dateien“ installieren, Modus „Daemon (Host)“ wählen, Adresse aus der Liste oben und Port 3310 eintragen. Nextcloud auf demselben Knoten: 10.0.2.2. Nextcloud auf einem anderen Knoten: die VPN-Adresse dieses Knotens.",
+        "port_3310_in_use": "TCP 3310 ist auf diesem Knoten bereits belegt (weitere ClamAV-Instanz?)",
+        "size_out_of_range": "Wert zwischen 1 und 4000 MB eingeben",
+        "stream_smaller_than_file": "Die Stream-Länge darf nicht kleiner als die maximale Dateigrösse sein"
+    },
+    "about": {
+        "title": "Über"
+    },
+    "task": {
+        "cannot_create_task": "Aufgabe {action} kann nicht erstellt werden"
+    },
+    "action": {
+        "get-status": "Status abrufen",
+        "get-configuration": "Konfiguration abrufen",
+        "configure-module": "Modul konfigurieren",
+        "get-module-info": "Modul-Info abrufen",
+        "get-name": "Name abrufen",
+        "list-backup-repositories": "Backup-Speicherorte auflisten",
+        "list-backups": "Backups auflisten",
+        "list-installed-modules": "Installierte Module auflisten"
+    },
+    "error": {
+        "error": "Fehler",
+        "generic_error": "Etwas ist schief gegangen",
+        "validation_error": "Fehler bei der Validierung",
+        "network_error": "Netzwerk-Fehler",
+        "network_timeout": "Netzwerk-Zeitüberschreitung",
+        "401": "Authentifizierung fehlerhaft",
+        "403": "Vorgang nicht autorisiert",
+        "404": "Ressource nicht gefunden",
+        "cannot_retrieve_module_info": "Fehler beim Abruf der Modul-Info",
+        "cannot_retrieve_installed_modules": "Fehler beim Abruf installierter Module"
+    }
+}

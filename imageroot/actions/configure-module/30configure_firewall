@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Loopback and the cluster VPN (zone "trusted") always reach clamd. The public
+# zone (LAN) only when LAN access is enabled: open 3310/tcp as a public service
+# named after the module, otherwise make sure it is closed.
+
+import json
+import os
+import sys
+
+import agent
+
+data = json.load(sys.stdin)
+module_id = os.environ["MODULE_ID"]
+if data.get("listen_lan", False):
+    agent.assert_exp(agent.add_public_service(module_id, ["3310/tcp"], replace_ports=True))
+else:
+    agent.remove_public_service(module_id)

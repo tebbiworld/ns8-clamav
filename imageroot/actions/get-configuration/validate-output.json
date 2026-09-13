@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "get-configuration output",
+    "$id": "http://schema.nethserver.org/clamav/get-configuration-output.json",
+    "description": "Get ClamAV configuration and status",
+    "type": "object",
+    "properties": {
+        "listen_lan": { "type": "boolean" },
+        "max_file_size_mb": { "type": "integer" },
+        "max_scan_size_mb": { "type": "integer" },
+        "stream_max_length_mb": { "type": "integer" },
+        "signature_checks_per_day": { "type": "integer" },
+        "daemon_up": { "type": "boolean" },
+        "engine_version": { "type": "string" },
+        "signature_version": { "type": "string" },
+        "signature_date": { "type": "string" },
+        "port": { "type": "integer" },
+        "vpn_address": { "type": "string" },
+        "lan_addresses": { "type": "array", "items": { "type": "string" } }
+    }
+}

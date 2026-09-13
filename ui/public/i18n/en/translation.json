@@ -1,0 +1,83 @@
+{
+    "common": {
+        "required": "Required",
+        "processing": "Processing..."
+    },
+    "status": {
+        "title": "Status",
+        "app_instance": "App instance",
+        "services": "Service | Services",
+        "app_images": "App image | App images",
+        "app_volumes": "App volume | App volumes",
+        "installation_node": "Installation node",
+        "node": "Node",
+        "name": "Name",
+        "size": "Size",
+        "created": "Created",
+        "mount": "Mount",
+        "no_services": "No services",
+        "no_images": "No images",
+        "no_volumes": "No volumes"
+    },
+    "settings": {
+        "title": "Settings",
+        "configure_instance": "Configure {instance}",
+        "save": "Save",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "daemon_up_title": "ClamAV {engine} is running",
+        "daemon_up_desc": "Signature database {sigs} of {date}.",
+        "daemon_down_title": "clamd is not answering",
+        "daemon_down_desc": "The first start downloads the signature database (about 300 MB) and can take several minutes. Check the service log if this persists.",
+        "access_section": "Access",
+        "listen_lan": "LAN access (open TCP 3310 in the node firewall)",
+        "endpoints_title": "Where clients reach this scanner (mode: daemon / host, port 3310)",
+        "ep_same_node_slirp": "Module on this node with slirp4netns network (Nextcloud):",
+        "ep_same_node_pasta": "Module on this node with pasta network:",
+        "ep_vpn": "Any node of the cluster (VPN):",
+        "ep_lan": "Clients in the LAN:",
+        "ep_hint": "Loopback and the cluster VPN are always allowed; the LAN address only with LAN access enabled.",
+        "limits_section": "Scan limits",
+        "max_file_size_mb": "Maximum file size (MB)",
+        "max_file_size_mb_helper": "Larger files are not scanned (clamd MaxFileSize).",
+        "max_scan_size_mb": "Maximum scan size (MB)",
+        "max_scan_size_mb_helper": "Data scanned per file including unpacked archives (clamd MaxScanSize).",
+        "stream_max_length_mb": "Maximum stream length (MB)",
+        "stream_max_length_mb_helper": "Largest file a client may stream to the daemon (clamd StreamMaxLength). Not smaller than the maximum file size; set the same value in the client (Nextcloud: 'maximum stream length' in bytes).",
+        "signature_checks_per_day": "Signature update checks per day",
+        "signature_checks_per_day_helper": "freshclam checks database.clamav.net this many times per day.",
+        "nextcloud_hint_title": "Nextcloud",
+        "nextcloud_hint_desc": "Install the app 'Antivirus for files', choose mode 'Daemon (host)', enter the address from the list above and port 3310. Nextcloud on the same node: 10.0.2.2. Nextcloud on another node: the VPN address of this node.",
+        "port_3310_in_use": "TCP 3310 is already in use on this node (another ClamAV instance?)",
+        "size_out_of_range": "Enter a value between 1 and 4000 MB",
+        "stream_smaller_than_file": "The stream length must not be smaller than the maximum file size"
+    },
+    "about": {
+        "title": "About"
+    },
+    "task": {
+        "cannot_create_task": "Cannot create task {action}"
+    },
+    "action": {
+        "get-status": "Get status",
+        "get-configuration": "Get configuration",
+        "configure-module": "Configure module",
+        "get-module-info": "Get module info",
+        "get-name": "Get name",
+        "list-backup-repositories": "List backup repositories",
+        "list-backups": "List backups",
+        "list-installed-modules": "List installed modules"
+    },
+    "error": {
+        "error": "Error",
+        "generic_error": "Something went wrong",
+        "validation_error": "Validation error",
+        "network_error": "Network error",
+        "network_timeout": "Network timeout",
+        "401": "Invalid authentication",
+        "403": "Operation not authorized",
+        "404": "Resource not found",
+        "cannot_retrieve_module_info": "Cannot retrieve module info",
+        "cannot_retrieve_installed_modules": "Cannot retrieve installed modules"
+    }
+}

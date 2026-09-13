@@ -1,0 +1,17 @@
+{
+  "name": "ClamAV",
+  "description": {
+    "en": "ClamAV antivirus daemon for the cluster — scan endpoint for Nextcloud and other modules on the same node or via the cluster VPN",
+    "de": "ClamAV-Virenscanner für den Cluster — Scan-Dienst für Nextcloud und andere Module auf demselben Knoten oder über das Cluster-VPN"
+  },
+  "categories": ["security"],
+  "authors": [
+    { "name": "tebbi", "email": "info@ebbinghaus.world" }
+  ],
+  "docs": {
+    "documentation_url": "https://docs.clamav.net/",
+    "bug_url": "https://github.com/tebbiworld/ns8-clamav/issues",
+    "code_url": "https://github.com/tebbiworld/ns8-clamav"
+  },
+  "source": "ghcr.io/tebbiworld/clamav"
+}

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# The core's update-module action does not restart the module's units; restart
+# so a new pinned ClamAV version runs right after the update.
+
+set -e
+exec 1>&2
+
+systemctl --user daemon-reload
+systemctl --user restart clamav.service
