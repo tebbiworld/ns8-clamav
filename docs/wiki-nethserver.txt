@@ -77,7 +77,7 @@ Upload the [[https://www.eicar.org/download-anti-malware-testfile/|EICAR test fi
 The NS8 backup contains ''state/environment'' and ''state/clamav.env'' only. The signature database is not backed up on purpose; after a restore the container downloads it again.
 
 =====Licences and trademarks=====
-Unofficial, community-built package, not affiliated with or endorsed by Cisco Talos or the ClamAV project. "ClamAV" is a trademark of Cisco Systems, Inc. and is used here only to identify the packaged software; the module uses its own neutral logo.
+Unofficial, community-built package, not affiliated with or endorsed by Cisco Talos or the ClamAV project. "ClamAV" and the ClamAV mascot logo are trademarks of Cisco Systems, Inc.; the logo is used unmodified from the ClamAV project only to identify the packaged software.
 
 ClamAV is licensed GPL-2.0; the official image is pulled at runtime and not redistributed. The module's own code is licensed %%GPL%%-3.0-or-later.
 

@@ -82,5 +82,6 @@ backed up on purpose; after a restore the container downloads it again.
   after the update.
 * `runagent -m clamav1 podman logs clamav` shows freshclam and clamd output.
 * Test from the node: `printf 'zPING\0' | python3 -c "import socket,sys; s=socket.create_connection(('127.0.0.1',3310)); s.sendall(sys.stdin.buffer.read()); print(s.recv(16))"` → `b'PONG\x00'`.
+* The module logo is the official ClamAV mascot (© Cisco Systems, trademark), used unmodified to identify the packaged software.
 * ClamAV is GPL-2.0; the image is published by Cisco Talos and pulled at
   runtime. The module's own code is GPL-3.0-or-later.
