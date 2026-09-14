@@ -31,7 +31,7 @@ env:
   PIN_FILES: "build-images.sh"
   MIN_DAYS: "42"
   MODULE: "clamav"
-  PUBLISH_IMAGES: "ghcr.io/tebbiworld/clamav"
+  PUBLISH_IMAGES: "ghcr.io/tebbiworld/clamav ghcr.io/tebbiworld/clamav-web"
 
 jobs:
   release:

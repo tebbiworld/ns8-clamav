@@ -35,6 +35,21 @@ for key in ("max_file_size_mb", "max_scan_size_mb", "stream_max_length_mb"):
 if data.get("max_file_size_mb") and data.get("stream_max_length_mb") and int(data["stream_max_length_mb"]) < int(data["max_file_size_mb"]):
     fail("stream_max_length_mb", data["stream_max_length_mb"], "stream_smaller_than_file")
 
+# Web front end: a first enable needs a password (later saves may keep it)
+if (data.get("web_host") or "").strip():
+    if not (data.get("web_user") or "").strip():
+        fail("web_user", "", "web_user_required")
+    if not data.get("web_password") and not os.environ.get("WEB_PASSWORD_PBKDF2"):
+        fail("web_password", "", "web_password_required")
+    if data.get("web_password") and len(data["web_password"]) < 8:
+        fail("web_password", "", "web_password_too_short")
+    import ipaddress
+    for cidr in data.get("ip_allowlist") or []:
+        try:
+            ipaddress.ip_network(cidr.strip(), strict=False)
+        except ValueError:
+            fail("ip_allowlist", cidr, "invalid_cidr")
+
 if errors:
     agent.set_status("validation-failed")
     json.dump(errors, fp=sys.stdout)

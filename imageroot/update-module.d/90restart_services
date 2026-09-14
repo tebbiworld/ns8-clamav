@@ -13,3 +13,4 @@ exec 1>&2
 
 systemctl --user daemon-reload
 systemctl --user restart clamav.service
+systemctl --user try-restart clamav-web.service

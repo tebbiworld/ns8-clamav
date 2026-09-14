@@ -5,7 +5,20 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import json
+import os
 import subprocess
+import sys
 
+data = json.load(sys.stdin)
 subprocess.run(["systemctl", "--user", "enable", "clamav.service"], check=True)
-subprocess.run(["systemctl", "--user", "restart", "clamav.service"], check=True)
+if os.path.exists(".clamd-restart"):
+    os.unlink(".clamd-restart")
+    subprocess.run(["systemctl", "--user", "restart", "clamav.service"], check=True)
+else:
+    subprocess.run(["systemctl", "--user", "start", "clamav.service"], check=True)
+if (data.get("web_host") or "").strip():
+    subprocess.run(["systemctl", "--user", "enable", "clamav-web.service"], check=True)
+    subprocess.run(["systemctl", "--user", "restart", "clamav-web.service"], check=True)
+else:
+    subprocess.run(["systemctl", "--user", "disable", "--now", "clamav-web.service"], check=False)

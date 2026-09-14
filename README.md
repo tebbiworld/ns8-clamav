@@ -19,6 +19,7 @@ One rootless container, host network:
 | Image | `docker.io/clamav/clamav:<pinned>` — clamd + freshclam + initial signature database |
 | Port | TCP 3310 on all addresses of the node |
 | Volume `clamav-db` | signature database (~300 MB), refreshed by freshclam; not in the backup, re-downloaded when missing |
+| Container `clamav-web` (optional) | upload form + REST API, `ghcr.io/tebbiworld/clamav-web`, behind Traefik |
 | Memory | clamd keeps the signatures in RAM: plan **1–1.5 GB** for the node |
 
 Who can connect is decided by the node firewall:
@@ -98,7 +99,29 @@ s.sendall(struct.pack("!I", 0)); print(s.recv(4096).decode().strip("\0\n"))
 
 Mail filters (rspamd, Amavis), proxies (c-icap), Samba `vfs_virusfilter` and
 other software with a clamd integration use host `<node address>`, port 3310.
-There is no HTTP/REST layer or web form yet.
+
+## Web / REST front end
+
+Set a host name in the *Web / REST front end* section (plus login name and
+password) and the module publishes, through Traefik with TLS:
+
+| | |
+| --- | --- |
+| `https://<host>/` | upload form (one or more files, results as a table) |
+| `POST /api/v1/scan` | multipart field `file` (several allowed) or a raw body with header `X-Filename`; JSON: `{"results":[{"file","size","result":"clean|infected|error","signature","detail"}],"infected":bool,"errors":bool}` |
+| `GET /api/v1/version` | engine and signature database version |
+| `GET /api/v1/health` | `{"clamd":"up"}` / 503 — no login, for monitoring |
+
+```
+curl -u scan:secret -F file=@invoice.pdf -F file=@setup.exe https://scan.example.org/api/v1/scan
+```
+
+Everything except `/api/v1/health` requires HTTP basic authentication; an
+optional allow-list of client networks is enforced by Traefik. Uploads are
+streamed to clamd and never stored; the maximum size follows *Maximum stream
+length*. The front end is a small standard-library Python service
+(`web/app.py`) shipped as `ghcr.io/tebbiworld/clamav-web`, running in the host
+network on `127.0.0.1:<allocated port>`.
 
 ## Backup
 

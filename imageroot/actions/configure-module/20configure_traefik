@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Traefik route for the optional web/REST front end; removed when no host name
+# is configured.
+
+import json
+import os
+import sys
+
+import agent
+import agent.tasks
+
+data = json.load(sys.stdin)
+module_id = os.environ["MODULE_ID"]
+host = (data.get("web_host") or "").strip()
+if not host:
+    agent.tasks.run(agent_id=agent.resolve_agent_id("traefik@node"), action="delete-route", data={"instance": module_id})
+    sys.exit(0)
+route = {
+    "instance": module_id,
+    "url": "http://127.0.0.1:" + os.environ["WEB_PORT"],
+    "host": host,
+    "http2https": data.get("http2https", True),
+    "lets_encrypt_check": True,
+    "lets_encrypt_cleanup": True,
+}
+if "lets_encrypt" in data:
+    route["lets_encrypt"] = data["lets_encrypt"]
+# always pass the list: an empty one removes a previously set allow-list
+route["ip_allowlist"] = [c.strip() for c in data.get("ip_allowlist", []) if c.strip()]
+agent.set_route(route)

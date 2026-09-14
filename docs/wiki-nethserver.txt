@@ -15,7 +15,7 @@ The NS8 Mail module ships its own clamd, but bound to ''127.0.0.1:11330'' of the
   * live status on the settings page: engine and signature database version
 
 =====Architecture=====
-A single rootless container from the pinned official image.
+One rootless container from the pinned official image, plus an optional second one for the web/REST front end.
 
 ^ ^ ^
 | Port | TCP 3310 on all addresses of the node (host network) |
@@ -36,7 +36,7 @@ One instance per node (fixed port). The Mail module's clamd on 11330 does not cl
 On the NethServer 8 cluster leader:
 
 <code bash>
-add-module ghcr.io/tebbiworld/clamav:1.0.0 1
+add-module ghcr.io/tebbiworld/clamav:1.1.0 1
 </code>
 
 Configure it (all settings have defaults; this keeps the LAN closed):
@@ -94,8 +94,20 @@ clamdscan --stream --config-file=clamd-remote.conf --fdpass=no /path/to/file
   * **Software with a clamd integration**: mail filters (rspamd, Amavis), proxies (Squid with c-icap), file servers (Samba ''vfs_virusfilter''), web applications with upload scanning, backup or ticket systems — configure them with host ''<node address>'', port ''3310'', mode "TCP" / "network daemon".
   * **Scripts**: the protocol is simple enough for a few lines of Python or PowerShell (send ''zINSTREAM\0'', then length-prefixed chunks, a zero-length chunk ends the file; the daemon answers ''stream: OK'' or ''stream: <signature> FOUND''). The module README contains a working Python example.
 
-====Not included (yet)====
-There is no HTTP layer: no web form to upload a file, no REST endpoint, no login. Users without a clamd-capable client cannot use the scanner today. A REST/web front end behind Traefik with its own credentials is a candidate for a later release; the clamd port itself would stay as it is.
+====Web / REST front end====
+Since module version 1.1.0 the module can publish an **upload form and a JSON API** through Traefik: set a host name in the //Web / REST front end// section of the settings page together with a login name and password; Let's Encrypt, HTTP→HTTPS and an allow-list of client networks work as in the other modules.
+
+^ ^ ^
+| ''%%https://<host>/%%'' | upload form for one or more files, results as a table |
+| ''POST /api/v1/scan'' | multipart field ''file'' (several allowed) or a raw body with header ''X-Filename''; JSON per file: ''clean'' / ''infected'' + signature / ''error'' |
+| ''GET /api/v1/version'' | engine and signature database version |
+| ''GET /api/v1/health'' | ''{"clamd":"up"}'' or 503 — no login, for monitoring |
+
+<code bash>
+curl -u scan:secret -F file=@invoice.pdf https://scan.example.org/api/v1/scan
+</code>
+
+Everything except ''/api/v1/health'' requires HTTP basic authentication. Uploads are streamed to clamd and never stored; the maximum size follows //Maximum stream length//. This is the way for users and systems without a clamd client — browsers, ''curl'', Windows scripts, web hooks.
 
 =====Backup=====
 The NS8 backup contains ''state/environment'' and ''state/clamav.env'' only. The signature database is not backed up on purpose; after a restore the container downloads it again.

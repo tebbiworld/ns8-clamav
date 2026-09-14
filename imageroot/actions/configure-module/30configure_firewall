@@ -17,7 +17,10 @@ import agent
 
 data = json.load(sys.stdin)
 module_id = os.environ["MODULE_ID"]
+marker = ".lan-service-open"  # remember that the public service exists
 if data.get("listen_lan", False):
     agent.assert_exp(agent.add_public_service(module_id, ["3310/tcp"], replace_ports=True))
-else:
+    open(marker, "w").close()
+elif os.path.exists(marker):
     agent.remove_public_service(module_id)
+    os.unlink(marker)

@@ -1,0 +1,10 @@
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# HTTP/REST front end for the ClamAV module: a single-file Python application
+# (standard library only) that streams uploads to clamd and answers JSON.
+FROM docker.io/library/python:3.12-alpine
+COPY app.py /app/app.py
+RUN adduser -D -H web
+USER web
+ENTRYPOINT ["python3", "/app/app.py"]

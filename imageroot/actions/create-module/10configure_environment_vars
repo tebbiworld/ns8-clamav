@@ -6,11 +6,20 @@
 #
 
 # Defaults for a fresh instance; configure-module applies the real settings.
+# The node allocates one TCP port (org.nethserver.tcp-ports-demand) for the
+# optional web/REST front end.
+
+import os
 
 import agent
 
+tcp_ports = [p.strip() for p in os.environ.get("TCP_PORTS", "").split(",") if p.strip()]
+if tcp_ports:
+    agent.set_env("WEB_PORT", tcp_ports[0])
 agent.set_env("LISTEN_LAN", "false")
 agent.set_env("MAX_FILE_SIZE_MB", "100")
 agent.set_env("MAX_SCAN_SIZE_MB", "400")
 agent.set_env("STREAM_MAX_LENGTH_MB", "100")
 agent.set_env("SIGNATURE_CHECKS_PER_DAY", "12")
+agent.set_env("WEB_HOST", "")
+agent.set_env("WEB_USER", "scan")

@@ -1,0 +1,40 @@
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Optional HTTP/REST front end (upload form + JSON API) for the ClamAV daemon.
+# Enabled by configure-module when a host name is set. Host network like clamd:
+# the app binds 127.0.0.1:${WEB_PORT} and talks to clamd on 127.0.0.1:3310;
+# Traefik publishes it with TLS, optional IP allow-list; the app itself asks
+# for HTTP basic authentication (credentials in state/clamav-web.env).
+
+[Unit]
+Description=ClamAV web/REST front end
+After=network-online.target clamav.service
+Wants=network-online.target
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+TimeoutStopSec=30
+ExecStartPre=/bin/touch %S/state/clamav-web.env
+ExecStartPre=/bin/rm -f %t/clamav-web.pid %t/clamav-web.ctr-id
+ExecStart=/usr/bin/podman run \
+    --conmon-pidfile %t/clamav-web.pid \
+    --cidfile %t/clamav-web.ctr-id \
+    --cgroups=no-conmon \
+    --replace -d --name clamav-web \
+    --network=host \
+    --env-file %S/state/clamav-web.env \
+    ${CLAMAV_WEB_IMAGE}
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/clamav-web.ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/clamav-web.ctr-id
+PIDFile=%t/clamav-web.pid
+Type=forking
+SyslogIdentifier=%u
+
+[Install]
+WantedBy=default.target

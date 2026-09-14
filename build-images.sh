@@ -17,8 +17,19 @@ reponame="clamav"
 # CLAMD_CONF_* / FRESHCLAM_CONF_* environment variables (see its entrypoint).
 clamav_image="docker.io/clamav/clamav:1.5.4"
 
+# Web/REST front end, built here from web/ and pinned by the module with the
+# same tag as the module image (${CLAMAV_WEB_IMAGE}).
+webimage="${repobase}/clamav-web:${IMAGETAG:-latest}"
+echo "Build the web/REST front end image..."
+podman build --force-rm -t "${webimage}" -f web/Containerfile web/
+# The CI workflow pushes every image in the list as docker://<image>:${IMAGETAG},
+# so list the untagged name and keep an untagged (latest) alias of the build.
+podman tag "${webimage}" "${repobase}/clamav-web"
+images+=("${repobase}/clamav-web")
+
 runtime_images=(
     "${clamav_image}"
+    "${webimage}"
 )
 
 container=$(buildah from scratch)
@@ -37,12 +48,13 @@ buildah run \
 
 buildah add "${container}" imageroot /imageroot
 buildah add "${container}" ui/dist /ui
-# No Traefik route and no allocated port: clamd listens on the fixed port 3310
-# in the host network. node:fwadm lets the module open that port in the public
-# zone when LAN access is enabled.
+# clamd listens on the fixed port 3310 in the host network; node:fwadm lets the
+# module open it in the public zone; portsadm lets configure-module allocate
+# the front-end port for instances created before 1.1.0. One TCP port for the
+# web/REST front end behind Traefik (routeadm).
 buildah config --entrypoint=/ \
-    --label="org.nethserver.authorizations=node:fwadm" \
-    --label="org.nethserver.tcp-ports-demand=0" \
+    --label="org.nethserver.authorizations=node:fwadm,portsadm traefik@node:routeadm" \
+    --label="org.nethserver.tcp-ports-demand=1" \
     --label="org.nethserver.rootfull=0" \
     --label="org.nethserver.images=${runtime_images[*]}" \
     "${container}"
@@ -54,6 +66,7 @@ if [[ -n "${CI}" ]]; then
     printf "images=%s\n" "${images[*],,}" >> "${GITHUB_OUTPUT}"
 else
     printf "Publish the images with:\n\n"
-    for image in "${images[@],,}"; do printf "  buildah push %s docker://%s:%s\n" "${image}" "${image}" "${IMAGETAG:-latest}" ; done
+    printf "  buildah push %s docker://%s\n" "${webimage,,}" "${webimage,,}"
+    printf "  buildah push %s docker://%s:%s\n" "${repobase,,}/${reponame,,}" "${repobase,,}/${reponame,,}" "${IMAGETAG:-latest}"
     printf "\n"
 fi

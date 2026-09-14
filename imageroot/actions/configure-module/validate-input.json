@@ -9,7 +9,15 @@
             "max_file_size_mb": 100,
             "max_scan_size_mb": 400,
             "stream_max_length_mb": 100,
-            "signature_checks_per_day": 12
+            "signature_checks_per_day": 12,
+            "web_host": "scan.example.org",
+            "lets_encrypt": true,
+            "http2https": true,
+            "web_user": "scan",
+            "web_password": "s3cret-Passw0rd",
+            "ip_allowlist": [
+                "192.168.1.0/24"
+            ]
         }
     ],
     "type": "object",
@@ -51,6 +59,42 @@
             "minimum": 1,
             "maximum": 48,
             "default": 12
+        },
+        "web_host": {
+            "type": "string",
+            "title": "Web front end host name",
+            "description": "FQDN of the upload form / REST API published through Traefik. Empty disables the web front end."
+        },
+        "lets_encrypt": {
+            "type": "boolean",
+            "title": "Let's Encrypt certificate",
+            "description": "Request a valid Let's Encrypt certificate for the host name."
+        },
+        "http2https": {
+            "type": "boolean",
+            "title": "HTTP to HTTPS redirection",
+            "description": "Redirect all HTTP requests to HTTPS."
+        },
+        "web_user": {
+            "type": "string",
+            "title": "Web login name",
+            "description": "HTTP basic auth user of the web front end and the REST API."
+        },
+        "web_password": {
+            "type": "string",
+            "title": "Web password",
+            "description": "New password (at least 8 characters); empty keeps the stored one.",
+            "format": "password",
+            "maxLength": 256
+        },
+        "ip_allowlist": {
+            "type": "array",
+            "title": "Allowed client networks",
+            "description": "CIDR list allowed to reach the web front end; empty allows all.",
+            "items": {
+                "type": "string"
+            },
+            "default": []
         }
     }
 }

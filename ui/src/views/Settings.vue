@@ -42,6 +42,31 @@
               </template>
             </NsInlineNotification>
 
+            <h4 class="section">{{ $t("settings.web_section") }}</h4>
+            <cv-text-input :label="$t('settings.web_host')" v-model.trim="web_host" :placeholder="$t('settings.web_host_placeholder')" :helper-text="$t('settings.web_host_helper')" :disabled="loading.getConfiguration || loading.configureModule" :invalid-message="$t(error.web_host)" ref="web_host" class="field"></cv-text-input>
+            <template v-if="web_host">
+              <cv-toggle value="lets_encrypt" :label="$t('settings.lets_encrypt')" v-model="lets_encrypt" :disabled="loading.getConfiguration || loading.configureModule" class="toggle">
+                <template slot="text-left">{{ $t("settings.disabled") }}</template>
+                <template slot="text-right">{{ $t("settings.enabled") }}</template>
+              </cv-toggle>
+              <cv-toggle value="http2https" :label="$t('settings.http2https')" v-model="http2https" :disabled="loading.getConfiguration || loading.configureModule" class="toggle">
+                <template slot="text-left">{{ $t("settings.disabled") }}</template>
+                <template slot="text-right">{{ $t("settings.enabled") }}</template>
+              </cv-toggle>
+              <cv-text-input :label="$t('settings.web_user')" v-model.trim="web_user" :disabled="loading.getConfiguration || loading.configureModule" :invalid-message="$t(error.web_user)" ref="web_user" class="field"></cv-text-input>
+              <cv-text-input type="password" :label="$t('settings.web_password')" v-model="web_password" :placeholder="web_password_set ? $t('settings.secret_keep_placeholder') : ''" :helper-text="web_password_set ? $t('settings.secret_is_set') : $t('settings.web_password_helper')" :password-hide-label="$t('settings.hide')" :password-show-label="$t('settings.show')" :disabled="loading.getConfiguration || loading.configureModule" :invalid-message="$t(error.web_password)" ref="web_password" class="field"></cv-text-input>
+              <cv-text-area :label="$t('settings.ip_allowlist')" v-model="ip_allowlist" :placeholder="$t('settings.ip_allowlist_placeholder')" :helper-text="$t('settings.ip_allowlist_helper')" :invalid-message="$t(error.ip_allowlist)" :disabled="loading.getConfiguration || loading.configureModule" ref="ip_allowlist" rows="3" class="field"></cv-text-area>
+              <NsInlineNotification v-if="web_url" kind="info" :title="$t('settings.web_url')" :showCloseButton="false" class="info-tile">
+                <template #description>
+                  <div class="endpoints">
+                    <div>{{ $t("settings.web_url_desc") }} <code>{{ web_url }}</code></div>
+                    <div>REST: <code>curl -u {{ web_user }}:••• -F file=@document.pdf {{ web_url }}api/v1/scan</code></div>
+                    <div class="hint">{{ $t("settings.web_api_hint") }}</div>
+                  </div>
+                </template>
+              </NsInlineNotification>
+            </template>
+
             <h4 class="section">{{ $t("settings.limits_section") }}</h4>
             <cv-number-input :label="$t('settings.max_file_size_mb')" v-model="max_file_size_mb" :min="1" :max="4000" :helper-text="$t('settings.max_file_size_mb_helper')" :invalid-message="$t(error.max_file_size_mb)" :disabled="loading.getConfiguration || loading.configureModule" ref="max_file_size_mb" class="field"></cv-number-input>
             <cv-number-input :label="$t('settings.max_scan_size_mb')" v-model="max_scan_size_mb" :min="1" :max="4000" :helper-text="$t('settings.max_scan_size_mb_helper')" :invalid-message="$t(error.max_scan_size_mb)" :disabled="loading.getConfiguration || loading.configureModule" ref="max_scan_size_mb" class="field"></cv-number-input>
@@ -83,6 +108,14 @@ export default {
       max_scan_size_mb: 400,
       stream_max_length_mb: 100,
       signature_checks_per_day: 12,
+      web_host: "",
+      lets_encrypt: false,
+      http2https: true,
+      web_user: "scan",
+      web_password: "",
+      web_password_set: false,
+      ip_allowlist: "",
+      web_url: "",
       daemon_up: false,
       engine_version: "",
       signature_version: "",
@@ -91,7 +124,7 @@ export default {
       vpn_address: "",
       lan_addresses: [],
       loading: { getConfiguration: false, configureModule: false },
-      error: { getConfiguration: "", configureModule: "", listen_lan: "", max_file_size_mb: "", max_scan_size_mb: "", stream_max_length_mb: "" },
+      error: { getConfiguration: "", configureModule: "", listen_lan: "", max_file_size_mb: "", max_scan_size_mb: "", stream_max_length_mb: "", web_host: "", web_user: "", web_password: "", ip_allowlist: "" },
     };
   },
   computed: { ...mapState(["instanceName", "core", "appName"]) },
@@ -136,6 +169,14 @@ export default {
       this.max_scan_size_mb = c.max_scan_size_mb || 400;
       this.stream_max_length_mb = c.stream_max_length_mb || 100;
       this.signature_checks_per_day = c.signature_checks_per_day || 12;
+      this.web_host = c.web_host || "";
+      this.lets_encrypt = !!c.lets_encrypt;
+      this.http2https = c.http2https !== undefined ? !!c.http2https : true;
+      this.web_user = c.web_user || "scan";
+      this.web_password_set = !!c.web_password_set;
+      this.web_password = "";
+      this.ip_allowlist = (c.ip_allowlist || []).join("\n");
+      this.web_url = c.web_url || "";
       this.daemon_up = !!c.daemon_up;
       this.engine_version = c.engine_version || "";
       this.signature_version = c.signature_version || "";
@@ -143,6 +184,9 @@ export default {
       this.port = c.port || 3310;
       this.vpn_address = c.vpn_address || "";
       this.lan_addresses = c.lan_addresses || [];
+    },
+    allowlistItems() {
+      return this.ip_allowlist.split(/[\s,]+/).map((x) => x.trim()).filter((x) => x);
     },
     validateConfigureModule() {
       this.clearErrors(this);
@@ -157,6 +201,13 @@ export default {
         if (!Number.isInteger(v) || v < 1 || v > 4000) fail(f, "settings.size_out_of_range");
       }
       if (Number(this.stream_max_length_mb) < Number(this.max_file_size_mb)) fail("stream_max_length_mb", "settings.stream_smaller_than_file");
+      if (this.web_host) {
+        if (!this.web_user) fail("web_user", "common.required");
+        if (!this.web_password && !this.web_password_set) fail("web_password", "common.required");
+        if (this.web_password && this.web_password.length < 8) fail("web_password", "settings.web_password_too_short");
+        const cidr = /^\d{1,3}(\.\d{1,3}){3}(\/\d{1,2})?$|^[0-9a-fA-F:]+(\/\d{1,3})?$/;
+        if (this.allowlistItems().some((c) => !cidr.test(c))) fail("ip_allowlist", "settings.invalid_cidr");
+      }
       return ok;
     },
     configureModuleValidationFailed(validationErrors) {
@@ -186,6 +237,12 @@ export default {
         max_scan_size_mb: Number(this.max_scan_size_mb),
         stream_max_length_mb: Number(this.stream_max_length_mb),
         signature_checks_per_day: Number(this.signature_checks_per_day),
+        web_host: this.web_host,
+        lets_encrypt: this.lets_encrypt,
+        http2https: this.http2https,
+        web_user: this.web_user,
+        web_password: this.web_password,
+        ip_allowlist: this.allowlistItems(),
       };
       const res = await to(this.createModuleTaskForApp(this.instanceName, {
         action: taskAction,
