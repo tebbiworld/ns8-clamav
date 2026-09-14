@@ -71,6 +71,35 @@ Install the app *Antivirus for files* (`files_antivirus`), then in
 [EICAR test file](https://www.eicar.org/download-anti-malware-testfile/)
 confirms the connection.
 
+## Using the scanner from other machines
+
+Enable **LAN access** (opens 3310/tcp in the node firewall). The clamd protocol
+has no authentication or encryption, so do this only in a trusted network and
+restrict the source addresses in the firewall if needed. Files are scanned as a
+stream (`INSTREAM`); `SCAN <path>` only works for paths inside the container.
+
+```
+# any Linux/macOS/Windows machine with the ClamAV client package, no local signatures needed
+printf 'TCPAddr <node address>\nTCPSocket 3310\n' > clamd-remote.conf
+clamdscan --stream --config-file=clamd-remote.conf --fdpass=no file.pdf
+```
+
+Minimal Python client:
+
+```python
+import socket, struct, sys
+host, path = sys.argv[1], sys.argv[2]
+s = socket.create_connection((host, 3310)); s.sendall(b"zINSTREAM\0")
+with open(path, "rb") as f:
+    while chunk := f.read(65536):
+        s.sendall(struct.pack("!I", len(chunk)) + chunk)
+s.sendall(struct.pack("!I", 0)); print(s.recv(4096).decode().strip("\0\n"))
+```
+
+Mail filters (rspamd, Amavis), proxies (c-icap), Samba `vfs_virusfilter` and
+other software with a clamd integration use host `<node address>`, port 3310.
+There is no HTTP/REST layer or web form yet.
+
 ## Backup
 
 `state/environment` and `state/clamav.env` only. The signature database is not

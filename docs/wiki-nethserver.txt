@@ -73,6 +73,30 @@ Install the app //Antivirus for files// (''files_antivirus''), then under //Admi
 
 Upload the [[https://www.eicar.org/download-anti-malware-testfile/|EICAR test file]] to confirm the connection: Nextcloud refuses it with a virus warning.
 
+=====Using the scanner from other machines=====
+The daemon speaks the plain clamd protocol on TCP 3310 — the same one Nextcloud uses — so any computer that reaches the port can use it, not only modules of the cluster.
+
+====Requirements====
+  * Switch on **LAN access** in the module settings. That opens 3310/tcp in the node firewall (public zone); the settings page then lists the LAN address to use. Without the switch only the node itself and the cluster VPN reach the daemon.
+  * The clamd protocol has **no authentication and no encryption**. Anyone who can reach the port may submit files for scanning and could keep the daemon busy with large uploads. Enable LAN access only in a trusted network. Until the module offers an allow-list of its own, the source addresses can be restricted on the node with a firewalld rich rule for the service ''clamav1'' (replace the plain service opening by the rule).
+  * Files are scanned as a **stream** (''INSTREAM''): the client sends the file contents to the daemon. The ''SCAN <path>'' command only works for paths the daemon sees inside its container, so it is useless from other machines. The stream size is limited by //Maximum stream length// (default 100 MB).
+
+====Clients====
+  * **ClamAV command line** (''clamdscan'' from the ClamAV package on Linux, macOS or Windows): a client configuration with the node address is enough, no local signatures are needed:
+<code>
+# clamd-remote.conf
+TCPAddr <node address>
+TCPSocket 3310
+</code>
+<code bash>
+clamdscan --stream --config-file=clamd-remote.conf --fdpass=no /path/to/file
+</code>
+  * **Software with a clamd integration**: mail filters (rspamd, Amavis), proxies (Squid with c-icap), file servers (Samba ''vfs_virusfilter''), web applications with upload scanning, backup or ticket systems — configure them with host ''<node address>'', port ''3310'', mode "TCP" / "network daemon".
+  * **Scripts**: the protocol is simple enough for a few lines of Python or PowerShell (send ''zINSTREAM\0'', then length-prefixed chunks, a zero-length chunk ends the file; the daemon answers ''stream: OK'' or ''stream: <signature> FOUND''). The module README contains a working Python example.
+
+====Not included (yet)====
+There is no HTTP layer: no web form to upload a file, no REST endpoint, no login. Users without a clamd-capable client cannot use the scanner today. A REST/web front end behind Traefik with its own credentials is a candidate for a later release; the clamd port itself would stay as it is.
+
 =====Backup=====
 The NS8 backup contains ''state/environment'' and ''state/clamav.env'' only. The signature database is not backed up on purpose; after a restore the container downloads it again.
 
