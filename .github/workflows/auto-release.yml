@@ -25,7 +25,7 @@ permissions:
 
 env:
   UPSTREAM_IMAGE: "docker.io/clamav/clamav"
-  TAG_REGEX: "^(?P<ver>\d+\.\d+\.\d+)$"
+  TAG_REGEX: '^(?P<ver>\d+\.\d+\.\d+)$'
   UPSTREAM_NAME: "ClamAV"
   MIN_DAYS: "42"
   IMAGE: "ghcr.io/tebbiworld/clamav"
