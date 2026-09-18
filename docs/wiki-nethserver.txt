@@ -27,8 +27,8 @@ Who can connect is decided by the node firewall, not by the module:
 ^ Client ^ Address to use ^ Allowed ^
 | Module on the same node, slirp4netns network (NS8 Nextcloud) | ''10.0.2.2:3310'' | always |
 | Module on the same node, pasta network | ''host.containers.internal:3310'' | always |
-| Module or service on another node | ''<VPN address of this node>:3310'' (10.5.4.x, zone //trusted//) | always |
-| Clients in the LAN | ''<LAN address>:3310'' | only with **LAN access** enabled (opens 3310/tcp in the public zone) |
+| Module or service on another node | ''%%<VPN address of this node>:3310%%'' (10.5.4.x, zone //trusted//) | always |
+| Clients in the LAN | ''%%<LAN address>:3310%%'' | only with **LAN access** enabled (opens 3310/tcp in the public zone) |
 
 One instance per node (fixed port). The Mail module's clamd on 11330 does not clash.
 
@@ -79,7 +79,7 @@ The daemon speaks the plain clamd protocol on TCP 3310 — the same one Nextclou
 ====Requirements====
   * Switch on **LAN access** in the module settings. That opens 3310/tcp in the node firewall (public zone); the settings page then lists the LAN address to use. Without the switch only the node itself and the cluster VPN reach the daemon.
   * The clamd protocol has **no authentication and no encryption**. Anyone who can reach the port may submit files for scanning and could keep the daemon busy with large uploads. Enable LAN access only in a trusted network. Until the module offers an allow-list of its own, the source addresses can be restricted on the node with a firewalld rich rule for the service ''clamav1'' (replace the plain service opening by the rule).
-  * Files are scanned as a **stream** (''INSTREAM''): the client sends the file contents to the daemon. The ''SCAN <path>'' command only works for paths the daemon sees inside its container, so it is useless from other machines. The stream size is limited by //Maximum stream length// (default 100 MB).
+  * Files are scanned as a **stream** (''INSTREAM''): the client sends the file contents to the daemon. The ''%%SCAN <path>%%'' command only works for paths the daemon sees inside its container, so it is useless from other machines. The stream size is limited by //Maximum stream length// (default 100 MB).
 
 ====Clients====
   * **ClamAV command line** (''clamdscan'' from the ClamAV package on Linux, macOS or Windows): a client configuration with the node address is enough, no local signatures are needed:
@@ -91,8 +91,8 @@ TCPSocket 3310
 <code bash>
 clamdscan --stream --config-file=clamd-remote.conf --fdpass=no /path/to/file
 </code>
-  * **Software with a clamd integration**: mail filters (rspamd, Amavis), proxies (Squid with c-icap), file servers (Samba ''vfs_virusfilter''), web applications with upload scanning, backup or ticket systems — configure them with host ''<node address>'', port ''3310'', mode "TCP" / "network daemon".
-  * **Scripts**: the protocol is simple enough for a few lines of Python or PowerShell (send ''zINSTREAM\0'', then length-prefixed chunks, a zero-length chunk ends the file; the daemon answers ''stream: OK'' or ''stream: <signature> FOUND''). The module README contains a working Python example.
+  * **Software with a clamd integration**: mail filters (rspamd, Amavis), proxies (Squid with c-icap), file servers (Samba ''vfs_virusfilter''), web applications with upload scanning, backup or ticket systems — configure them with host ''%%<node address>%%'', port ''3310'', mode "TCP" / "network daemon".
+  * **Scripts**: the protocol is simple enough for a few lines of Python or PowerShell (send ''zINSTREAM\0'', then length-prefixed chunks, a zero-length chunk ends the file; the daemon answers ''stream: OK'' or ''%%stream: <signature> FOUND%%''). The module README contains a working Python example.
 
 ====Web / REST front end====
 Since module version 1.1.0 the module can publish an **upload form and a JSON API** through Traefik: set a host name in the //Web / REST front end// section of the settings page together with a login name and password; Let's Encrypt, HTTP→HTTPS and an allow-list of client networks work as in the other modules.
