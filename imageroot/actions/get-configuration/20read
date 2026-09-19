@@ -15,6 +15,7 @@ import subprocess
 import sys
 
 import agent
+import modsecrets
 
 def clamd_version():
     try:
@@ -61,7 +62,7 @@ config = {
     "lets_encrypt": bool(os.getenv("WEB_HOST")) and agent.get_route(os.environ["MODULE_ID"]).get("lets_encrypt", False),
     "http2https": os.getenv("TRAEFIK_HTTP2HTTPS", "True") == "True",
     "web_user": os.getenv("WEB_USER", "scan"),
-    "web_password_set": bool(os.getenv("WEB_PASSWORD_PBKDF2")),
+    "web_password_set": bool(modsecrets.get("WEB_PASSWORD_PBKDF2")),
     "ip_allowlist": [c for c in os.getenv("IP_ALLOWLIST", "").split(",") if c],
     "web_url": f"https://{os.getenv('WEB_HOST')}/" if os.getenv("WEB_HOST") else "",
     "web_port": os.getenv("WEB_PORT", ""),

@@ -15,6 +15,7 @@ import subprocess
 import sys
 
 import agent
+import modsecrets
 
 agent.set_weight(os.path.basename(__file__), 0)
 
@@ -39,7 +40,7 @@ if data.get("max_file_size_mb") and data.get("stream_max_length_mb") and int(dat
 if (data.get("web_host") or "").strip():
     if not (data.get("web_user") or "").strip():
         fail("web_user", "", "web_user_required")
-    if not data.get("web_password") and not os.environ.get("WEB_PASSWORD_PBKDF2"):
+    if not data.get("web_password") and not modsecrets.get("WEB_PASSWORD_PBKDF2"):
         fail("web_password", "", "web_password_required")
     if data.get("web_password") and len(data["web_password"]) < 8:
         fail("web_password", "", "web_password_too_short")
