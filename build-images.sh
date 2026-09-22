@@ -52,11 +52,13 @@ buildah add "${container}" ui/dist /ui
 # module open it in the public zone; portsadm lets configure-module allocate
 # the front-end port for instances created before 1.1.0. One TCP port for the
 # web/REST front end behind Traefik (routeadm).
+# One instance per node: clamd listens on the node network, TCP 3310.
 buildah config --entrypoint=/ \
     --label="org.nethserver.authorizations=node:fwadm,portsadm traefik@node:routeadm" \
     --label="org.nethserver.tcp-ports-demand=1" \
     --label="org.nethserver.rootfull=0" \
     --label="org.nethserver.images=${runtime_images[*]}" \
+    --label="org.nethserver.max-per-node=1" \
     "${container}"
 buildah commit "${container}" "${repobase}/${reponame}"
 
