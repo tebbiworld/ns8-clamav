@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0 — 2026-09-19
+
+Alignment with the NethServer module conventions (NethServer/agents skills).
+
+### Changed
+
+- **Secrets moved out of the module environment.** The password hash of the web front end is now kept in `state/passwords.env` (mode 0600) instead of `state/environment`, which NS8 mirrors to Redis in plain text. Existing installations are migrated on update; the password does not change. The generated `clamav-web.env` is private (0600).
+- **Working restore.** New `restore-module` steps re-apply every setting on the restored instance, including the web front end and its password; the backup now includes the secrets file.
+- `update-module` only restarts a running instance.
+
+### Added
+
+- Robot Framework tests (install, update from the previous release, backup and restore) run on real NS8 nodes through `stephdl/ns8-ci-actions`.
+
 ## 1.1.0 — 2026-09-14
 
 ### Added

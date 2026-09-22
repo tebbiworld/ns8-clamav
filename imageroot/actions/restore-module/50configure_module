@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Re-apply the restored settings: every field configure-module accepts is
+# passed. The web password is left blank on purpose: blank = keep the restored
+# hash from passwords.env.
+
+import os
+import sys
+
+import agent
+
+env = os.environ
+
+data = {
+    "listen_lan": env.get("LISTEN_LAN", "false") == "true",
+    "max_file_size_mb": int(env.get("MAX_FILE_SIZE_MB", "100")),
+    "max_scan_size_mb": int(env.get("MAX_SCAN_SIZE_MB", "400")),
+    "stream_max_length_mb": int(env.get("STREAM_MAX_LENGTH_MB", "100")),
+    "signature_checks_per_day": int(env.get("SIGNATURE_CHECKS_PER_DAY", "12")),
+    "web_host": env.get("WEB_HOST", ""),
+    "lets_encrypt": env.get("TRAEFIK_LETS_ENCRYPT", "False") == "True",
+    "http2https": env.get("TRAEFIK_HTTP2HTTPS", "True") == "True",
+    "web_user": env.get("WEB_USER", "scan"),
+    "web_password": "",
+    "ip_allowlist": [c for c in env.get("IP_ALLOWLIST", "").split(",") if c],
+}
+if "TRAEFIK_LETS_ENCRYPT" not in env:
+    # A backup taken with a module version that did not record the setting: say
+    # so instead of silently asserting "off". The route is created without a
+    # certificate request; enable Let's Encrypt again in the settings.
+    data.pop("lets_encrypt", None)
+    print(agent.SD_WARNING + "the backup does not tell whether Let's Encrypt was enabled: the route is restored without it", file=sys.stderr)
+
+response = agent.tasks.run(agent_id=env["AGENT_ID"], action="configure-module", data=data)
+agent.assert_exp(response["exit_code"] == 0, "The configure-module subtask failed!")
