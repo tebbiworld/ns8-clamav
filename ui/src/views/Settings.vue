@@ -37,7 +37,7 @@
                   <div><strong>{{ $t("settings.ep_same_node_pasta") }}</strong> <code>host.containers.internal:{{ port }}</code></div>
                   <div v-if="vpn_address"><strong>{{ $t("settings.ep_vpn") }}</strong> <code>{{ vpn_address }}:{{ port }}</code></div>
                   <div v-if="listen_lan && lan_addresses.length"><strong>{{ $t("settings.ep_lan") }}</strong> <code v-for="a in lan_addresses" :key="a">{{ a }}:{{ port }} </code></div>
-                  <div class="hint">{{ $t("settings.ep_hint") }}</div>
+                  <div class="ep-hint">{{ $t("settings.ep_hint") }}</div>
                 </div>
               </template>
             </NsInlineNotification>
@@ -61,7 +61,7 @@
                   <div class="endpoints">
                     <div>{{ $t("settings.web_url_desc") }} <code>{{ web_url }}</code></div>
                     <div>REST: <code>curl -u {{ web_user }}:••• -F file=@document.pdf {{ web_url }}api/v1/scan</code></div>
-                    <div class="hint">{{ $t("settings.web_api_hint") }}</div>
+                    <div class="ep-hint">{{ $t("settings.web_api_hint") }}</div>
                   </div>
                 </template>
               </NsInlineNotification>
@@ -277,5 +277,5 @@ export default {
 .error-text { display: block; color: #da1e28; margin-top: $spacing-03; }
 .endpoints div { margin-top: $spacing-02; }
 .endpoints code { font-family: monospace; }
-.endpoints .hint { margin-top: $spacing-04; }
+.endpoints .ep-hint { margin-top: $spacing-04; }
 </style>
