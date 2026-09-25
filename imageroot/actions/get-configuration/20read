@@ -41,6 +41,32 @@ def node_addresses():
         pass
     return lan, vpn
 
+def nextcloud_clients(vpn):
+    """Nextcloud instances in the cluster and the host each one must enter.
+
+    Same node: 10.0.2.2 (Nextcloud runs with slirp4netns). Other node: the VPN
+    address of this node. Host and port are returned separately because the
+    files_antivirus "Host" field must not contain the port.
+    """
+    clients = []
+    try:
+        rdb = agent.redis_connect(use_replica=True)
+        this_node = os.environ.get("NODE_ID", "")
+        for module_id, node_id in sorted(rdb.hgetall("cluster/module_node").items()):
+            image = rdb.hget(f"module/{module_id}/environment", "IMAGE_URL") or ""
+            if "/nextcloud:" not in image:
+                continue
+            same = str(node_id) == str(this_node)
+            clients.append({
+                "module_id": module_id,
+                "node_id": str(node_id),
+                "same_node": same,
+                "host": "10.0.2.2" if same else vpn,
+            })
+    except Exception as ex:
+        print(agent.SD_WARNING + f"nextcloud discovery failed: {ex}", file=sys.stderr)
+    return clients
+
 def user_domains():
     try:
         import cluster.userdomains
@@ -65,6 +91,8 @@ config = {
     "port": 3310,
     "vpn_address": vpn,
     "lan_addresses": lan,
+    "node_id": os.environ.get("NODE_ID", ""),
+    "nextcloud_clients": nextcloud_clients(vpn),
     "web_host": os.getenv("WEB_HOST", ""),
     "lets_encrypt": bool(os.getenv("WEB_HOST")) and agent.get_route(os.environ["MODULE_ID"]).get("lets_encrypt", False),
     "http2https": os.getenv("TRAEFIK_HTTP2HTTPS", "True") == "True",

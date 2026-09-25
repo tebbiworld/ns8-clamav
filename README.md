@@ -66,6 +66,11 @@ Install the app *Antivirus for files* (`files_antivirus`), then in
 | Mode | **Daemon (host)** |
 | Host | `10.0.2.2` if Nextcloud runs on this node, otherwise the VPN address of this node (settings page) |
 | Port | `3310` |
+
+The settings page lists every Nextcloud instance of the cluster with the exact
+*Host* and *Port* to enter. Enter the address alone in *Host*, never `address:3310`.
+When ClamAV or Nextcloud moves to another node, the host changes: take the new value
+from the settings page and update Nextcloud (`occ config:app:set files_antivirus av_host --value=<host>`).
 | Maximum stream length | the module's value in bytes (default 100 MB = `104857600`) |
 
 `occ files_antivirus:status` (Nextcloud ≥ 29) or uploading the

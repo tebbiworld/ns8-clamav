@@ -55,7 +55,11 @@
         },
         "web_auth": {
             "type": "string",
-            "enum": ["none", "local", "ldap"]
+            "enum": [
+                "none",
+                "local",
+                "ldap"
+            ]
         },
         "ldap_domain": {
             "type": "string"
@@ -86,6 +90,35 @@
         },
         "web_port": {
             "type": "string"
+        },
+        "node_id": {
+            "type": "string"
+        },
+        "nextcloud_clients": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "module_id": {
+                        "type": "string"
+                    },
+                    "node_id": {
+                        "type": "string"
+                    },
+                    "same_node": {
+                        "type": "boolean"
+                    },
+                    "host": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "module_id",
+                    "node_id",
+                    "same_node",
+                    "host"
+                ]
+            }
         }
     }
 }

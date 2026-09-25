@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Settings page shows the Nextcloud values per instance.** It finds every Nextcloud of the cluster and shows the node it runs on with the *Host* to enter: `10.0.2.2` on the same node, the VPN address of this node otherwise. After ClamAV or Nextcloud moves to another node the value follows. Before, the page always showed the same-node address first, which is wrong for a Nextcloud on another node.
+- Addresses are shown without `:3310`. Nextcloud has separate *Host* and *Port* fields, and pasting `address:3310` into *Host* breaks the connection.
+
 ## 1.3.0 — 2026-09-25
 
 ### Added
