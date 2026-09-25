@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # HTTP/REST front end for the ClamAV module: a single-file Python application
-# (standard library only) that streams uploads to clamd and answers JSON.
+# that streams uploads to clamd and answers JSON. ldap3 (pure Python) checks
+# logins against the NS8 user domain.
 FROM docker.io/library/python:3.12-alpine
+RUN pip install --no-cache-dir ldap3==2.9.1 pyasn1==0.6.4
 COPY app.py /app/app.py
 RUN adduser -D -H web
 USER web

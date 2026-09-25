@@ -28,7 +28,7 @@ else:
     env = agent.read_envfile("environment.clone-module")
 
 KEEP = ["LISTEN_LAN", "MAX_FILE_SIZE_MB", "MAX_SCAN_SIZE_MB", "STREAM_MAX_LENGTH_MB", "SIGNATURE_CHECKS_PER_DAY",
-        "WEB_HOST", "WEB_USER", "TRAEFIK_HTTP2HTTPS", "TRAEFIK_LETS_ENCRYPT", "IP_ALLOWLIST"]
+        "WEB_HOST", "WEB_AUTH", "LDAP_DOMAIN", "LDAP_GROUP", "WEB_USER", "TRAEFIK_HTTP2HTTPS", "TRAEFIK_LETS_ENCRYPT", "IP_ALLOWLIST"]
 
 agent.mset_env({k: env[k] for k in KEEP if k in env})
 

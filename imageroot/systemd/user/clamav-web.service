@@ -7,7 +7,9 @@
 # Enabled by configure-module when a host name is set. Host network like clamd:
 # the app binds 127.0.0.1:${WEB_PORT} and talks to clamd on 127.0.0.1:3310;
 # Traefik publishes it with TLS, optional IP allow-list; the app itself asks
-# for HTTP basic authentication (credentials in state/clamav-web.env).
+# for a login: none, a local password (hash in state/clamav-web.env) or a user
+# of the NS8 user domain through the node's ldapproxy (state/ldap.env, written
+# by bin/discover-ldap before every start).
 
 [Unit]
 Description=ClamAV web/REST front end
@@ -21,6 +23,7 @@ WorkingDirectory=%S/state
 Restart=always
 TimeoutStopSec=30
 ExecStartPre=/bin/touch %S/state/clamav-web.env
+ExecStartPre=/usr/local/bin/runagent discover-ldap
 ExecStartPre=/bin/rm -f %t/clamav-web.pid %t/clamav-web.ctr-id
 ExecStart=/usr/bin/podman run \
     --conmon-pidfile %t/clamav-web.pid \
@@ -29,6 +32,7 @@ ExecStart=/usr/bin/podman run \
     --replace -d --name clamav-web \
     --network=host \
     --env-file %S/state/clamav-web.env \
+    --env-file %S/state/ldap.env \
     ${CLAMAV_WEB_IMAGE}
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/clamav-web.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/clamav-web.ctr-id

@@ -13,6 +13,9 @@
             "web_host": "scan.example.org",
             "lets_encrypt": true,
             "http2https": true,
+            "web_auth": "ldap",
+            "ldap_domain": "ad.example.org",
+            "ldap_group": "scanner-users",
             "web_user": "scan",
             "web_password": "s3cret-Passw0rd",
             "ip_allowlist": [
@@ -74,6 +77,24 @@
             "type": "boolean",
             "title": "HTTP to HTTPS redirection",
             "description": "Redirect all HTTP requests to HTTPS."
+        },
+        "web_auth": {
+            "type": "string",
+            "enum": ["none", "local", "ldap"],
+            "title": "Login",
+            "description": "How the web front end and the REST API check logins: none (anyone who reaches the route may scan: restrict it with ip_allowlist), local (web_user + web_password) or ldap (users of the user domain ldap_domain).",
+            "default": "local"
+        },
+        "ldap_domain": {
+            "type": "string",
+            "title": "User domain",
+            "description": "User domain of the cluster whose users may log in (web_auth ldap)."
+        },
+        "ldap_group": {
+            "type": "string",
+            "title": "Group",
+            "description": "Only members of this group (also nested) may log in; empty allows every user of the domain.",
+            "maxLength": 256
         },
         "web_user": {
             "type": "string",

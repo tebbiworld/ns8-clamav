@@ -102,8 +102,8 @@ other software with a clamd integration use host `<node address>`, port 3310.
 
 ## Web / REST front end
 
-Set a host name in the *Web / REST front end* section (plus login name and
-password) and the module publishes, through Traefik with TLS:
+Set a host name in the *Web / REST front end* section (and how users
+log in, see below) and the module publishes, through Traefik with TLS:
 
 | | |
 | --- | --- |
@@ -116,10 +116,20 @@ password) and the module publishes, through Traefik with TLS:
 curl -u scan:secret -F file=@invoice.pdf -F file=@setup.exe https://scan.example.org/api/v1/scan
 ```
 
-Everything except `/api/v1/health` requires HTTP basic authentication; an
-optional allow-list of client networks is enforced by Traefik. Uploads are
+Everything except `/api/v1/health` requires a login, chosen under *Login*:
+
+- **Users of a user domain** — any user of an NS8 user domain (Active
+  Directory or OpenLDAP), optionally only members of one group (nested groups
+  count in AD). The module binds to the domain and reaches it through the
+  node's ldapproxy; no service account has to be entered.
+- **Own login name and password** — one account stored in the module.
+- **No login** — anyone who reaches the host name may scan; combine it with
+  the allow-list of client networks, which Traefik enforces.
+
+The browser gets a login page with a session cookie (8 hours, log out button);
+scripts use HTTP basic authentication with the same credentials. Uploads are
 streamed to clamd and never stored; the maximum size follows *Maximum stream
-length*. The front end is a small standard-library Python service
+length*. The front end is a small Python service (standard library plus ldap3)
 (`web/app.py`) shipped as `ghcr.io/tebbiworld/clamav-web`, running in the host
 network on `127.0.0.1:<allocated port>`.
 

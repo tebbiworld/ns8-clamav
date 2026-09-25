@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.0 — unreleased
+
+### Added
+
+- **Login with the users of a user domain.** The web front end and the REST API can check logins against an NS8 user domain (Active Directory or OpenLDAP), optionally only for the members of one group (nested groups count in AD). The module binds to the domain and reaches it through the node's ldapproxy; no service account has to be entered. The connection settings are read again on every start and after a change of the domain.
+- **Login page instead of the browser dialog.** Browsers get a login form with a session cookie (HttpOnly, Secure, SameSite=Strict, 8 hours) and a log out button. Scripts keep using HTTP basic authentication with the same credentials.
+- **Login can be switched off**, for a scanner that is only reachable from trusted networks; the settings page warns when no client networks are set.
+
+### Changed
+
+- The *Login* setting has three choices: users of a user domain, own login name and password (the previous behaviour, still the default), no login.
+- New authorization `cluster:accountconsumer` to bind the user domain.
+
 ## 1.2.0 — 2026-09-19
 
 Alignment with the NethServer module conventions (NethServer/agents skills).

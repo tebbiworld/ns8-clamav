@@ -53,14 +53,26 @@
                 <template slot="text-left">{{ $t("settings.disabled") }}</template>
                 <template slot="text-right">{{ $t("settings.enabled") }}</template>
               </cv-toggle>
-              <cv-text-input :label="$t('settings.web_user')" v-model.trim="web_user" :disabled="loading.getConfiguration || loading.configureModule" :invalid-message="$t(error.web_user)" ref="web_user" class="field"></cv-text-input>
-              <cv-text-input type="password" :label="$t('settings.web_password')" v-model="web_password" :placeholder="web_password_set ? $t('settings.secret_keep_placeholder') : ''" :helper-text="web_password_set ? $t('settings.secret_is_set') : $t('settings.web_password_helper')" :password-hide-label="$t('settings.hide')" :password-show-label="$t('settings.show')" :disabled="loading.getConfiguration || loading.configureModule" :invalid-message="$t(error.web_password)" ref="web_password" class="field"></cv-text-input>
+              <cv-radio-group :legend="$t('settings.web_auth')" vertical class="field">
+                <cv-radio-button name="web_auth" value="ldap" v-model="web_auth" :label="$t('settings.web_auth_ldap')" :disabled="loading.getConfiguration || loading.configureModule || !user_domains.length" />
+                <cv-radio-button name="web_auth" value="local" v-model="web_auth" :label="$t('settings.web_auth_local')" :disabled="loading.getConfiguration || loading.configureModule" />
+                <cv-radio-button name="web_auth" value="none" v-model="web_auth" :label="$t('settings.web_auth_none')" :disabled="loading.getConfiguration || loading.configureModule" />
+              </cv-radio-group>
+              <template v-if="web_auth === 'ldap'">
+                <cv-dropdown :label="$t('settings.ldap_domain')" v-model="ldap_domain" :invalid-message="$t(error.ldap_domain)" :disabled="loading.getConfiguration || loading.configureModule" ref="ldap_domain" class="field">
+                  <cv-dropdown-item v-for="d in user_domains" :key="d" :value="d">{{ d }}</cv-dropdown-item>
+                </cv-dropdown>
+                <cv-text-input :label="$t('settings.ldap_group')" v-model.trim="ldap_group" :placeholder="$t('settings.ldap_group_placeholder')" :helper-text="$t('settings.ldap_group_helper')" :invalid-message="$t(error.ldap_group)" :disabled="loading.getConfiguration || loading.configureModule" ref="ldap_group" class="field"></cv-text-input>
+              </template>
+              <NsInlineNotification v-if="web_auth === 'none'" kind="warning" :title="$t('settings.web_auth_off_title')" :description="allowlistItems().length ? $t('settings.web_auth_off_allowlist') : $t('settings.web_auth_off_open')" :showCloseButton="false" class="info-tile" />
+              <cv-text-input v-if="web_auth === 'local'" :label="$t('settings.web_user')" v-model.trim="web_user" :disabled="loading.getConfiguration || loading.configureModule" :invalid-message="$t(error.web_user)" ref="web_user" class="field"></cv-text-input>
+              <cv-text-input v-if="web_auth === 'local'" type="password" :label="$t('settings.web_password')" v-model="web_password" :placeholder="web_password_set ? $t('settings.secret_keep_placeholder') : ''" :helper-text="web_password_set ? $t('settings.secret_is_set') : $t('settings.web_password_helper')" :password-hide-label="$t('settings.hide')" :password-show-label="$t('settings.show')" :disabled="loading.getConfiguration || loading.configureModule" :invalid-message="$t(error.web_password)" ref="web_password" class="field"></cv-text-input>
               <cv-text-area :label="$t('settings.ip_allowlist')" v-model="ip_allowlist" :placeholder="$t('settings.ip_allowlist_placeholder')" :helper-text="$t('settings.ip_allowlist_helper')" :invalid-message="$t(error.ip_allowlist)" :disabled="loading.getConfiguration || loading.configureModule" ref="ip_allowlist" rows="3" class="field"></cv-text-area>
               <NsInlineNotification v-if="web_url" kind="info" :title="$t('settings.web_url')" :showCloseButton="false" class="info-tile">
                 <template #description>
                   <div class="endpoints">
                     <div>{{ $t("settings.web_url_desc") }} <code>{{ web_url }}</code></div>
-                    <div>REST: <code>curl -u {{ web_user }}:••• -F file=@document.pdf {{ web_url }}api/v1/scan</code></div>
+                    <div>REST: <code>curl <template v-if="web_auth === 'local'">-u {{ web_user }}:••• </template><template v-else-if="web_auth === 'ldap'">-u &lt;user&gt;:••• </template>-F file=@document.pdf {{ web_url }}api/v1/scan</code></div>
                     <div class="ep-hint">{{ $t("settings.web_api_hint") }}</div>
                   </div>
                 </template>
@@ -111,6 +123,10 @@ export default {
       web_host: "",
       lets_encrypt: false,
       http2https: true,
+      web_auth: "local",
+      ldap_domain: "",
+      ldap_group: "",
+      user_domains: [],
       web_user: "scan",
       web_password: "",
       web_password_set: false,
@@ -124,7 +140,7 @@ export default {
       vpn_address: "",
       lan_addresses: [],
       loading: { getConfiguration: false, configureModule: false },
-      error: { getConfiguration: "", configureModule: "", listen_lan: "", max_file_size_mb: "", max_scan_size_mb: "", stream_max_length_mb: "", web_host: "", web_user: "", web_password: "", ip_allowlist: "" },
+      error: { getConfiguration: "", configureModule: "", listen_lan: "", max_file_size_mb: "", max_scan_size_mb: "", stream_max_length_mb: "", web_host: "", web_user: "", web_password: "", ldap_domain: "", ldap_group: "", ip_allowlist: "" },
     };
   },
   computed: { ...mapState(["instanceName", "core", "appName"]) },
@@ -172,6 +188,10 @@ export default {
       this.web_host = c.web_host || "";
       this.lets_encrypt = !!c.lets_encrypt;
       this.http2https = c.http2https !== undefined ? !!c.http2https : true;
+      this.web_auth = c.web_auth || "local";
+      this.user_domains = c.user_domains || [];
+      this.ldap_domain = c.ldap_domain || (this.user_domains.length === 1 ? this.user_domains[0] : "");
+      this.ldap_group = c.ldap_group || "";
       this.web_user = c.web_user || "scan";
       this.web_password_set = !!c.web_password_set;
       this.web_password = "";
@@ -202,9 +222,12 @@ export default {
       }
       if (Number(this.stream_max_length_mb) < Number(this.max_file_size_mb)) fail("stream_max_length_mb", "settings.stream_smaller_than_file");
       if (this.web_host) {
-        if (!this.web_user) fail("web_user", "common.required");
-        if (!this.web_password && !this.web_password_set) fail("web_password", "common.required");
-        if (this.web_password && this.web_password.length < 8) fail("web_password", "settings.web_password_too_short");
+        if (this.web_auth === "ldap" && !this.ldap_domain) fail("ldap_domain", "common.required");
+        if (this.web_auth === "local") {
+          if (!this.web_user) fail("web_user", "common.required");
+          if (!this.web_password && !this.web_password_set) fail("web_password", "common.required");
+          if (this.web_password && this.web_password.length < 8) fail("web_password", "settings.web_password_too_short");
+        }
         const cidr = /^\d{1,3}(\.\d{1,3}){3}(\/\d{1,2})?$|^[0-9a-fA-F:]+(\/\d{1,3})?$/;
         if (this.allowlistItems().some((c) => !cidr.test(c))) fail("ip_allowlist", "settings.invalid_cidr");
       }
@@ -240,6 +263,9 @@ export default {
         web_host: this.web_host,
         lets_encrypt: this.lets_encrypt,
         http2https: this.http2https,
+        web_auth: this.web_auth,
+        ldap_domain: this.web_auth === "ldap" ? this.ldap_domain : "",
+        ldap_group: this.ldap_group,
         web_user: this.web_user,
         web_password: this.web_password,
         ip_allowlist: this.allowlistItems(),
