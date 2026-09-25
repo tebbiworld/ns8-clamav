@@ -54,7 +54,7 @@ buildah add "${container}" ui/dist /ui
 # web/REST front end behind Traefik (routeadm).
 # One instance per node: clamd listens on the node network, TCP 3310.
 buildah config --entrypoint=/ \
-    --label="org.nethserver.authorizations=node:fwadm,portsadm traefik@node:routeadm" \
+    --label="org.nethserver.authorizations=node:fwadm,portsadm traefik@node:routeadm cluster:accountconsumer" \
     --label="org.nethserver.tcp-ports-demand=1" \
     --label="org.nethserver.rootfull=0" \
     --label="org.nethserver.images=${runtime_images[*]}" \

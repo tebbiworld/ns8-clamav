@@ -65,6 +65,21 @@ web_host = (data.get("web_host") or "").strip()
 web_user = (data.get("web_user") or os.environ.get("WEB_USER") or "scan").strip()
 agent.set_env("WEB_HOST", web_host)
 agent.set_env("WEB_USER", web_user)
+# none / local / ldap; instances before 1.3.0 only knew the local password
+web_auth = data.get("web_auth", "local")
+ldap_domain = (data.get("ldap_domain") or "").strip() if web_auth == "ldap" else ""
+agent.set_env("WEB_AUTH", web_auth)
+agent.set_env("LDAP_DOMAIN", ldap_domain)
+agent.set_env("LDAP_GROUP", (data.get("ldap_group") or "").strip())
+# declare which user domain the module uses (none when the login is local);
+# bin/discover-ldap reads its ldapproxy settings when clamav-web starts
+bind = [ldap_domain] if web_host and ldap_domain else []
+if bind:
+    import cluster.userdomains
+    if ldap_domain not in cluster.userdomains.list_domains(agent.redis_connect(use_replica=True)):
+        print(agent.SD_WARNING + f"user domain {ldap_domain} does not exist in this cluster: web logins are refused", file=sys.stderr)
+        bind = []
+agent.bind_user_domains(bind, check=True)
 agent.set_env("TRAEFIK_HTTP2HTTPS", bool(data.get("http2https", True)))
 # kept so restore-module can re-create the route with the same setting
 agent.set_env("TRAEFIK_LETS_ENCRYPT", bool(data.get("lets_encrypt", False)))
@@ -90,6 +105,8 @@ web_lines = [
     "CLAMD_HOST=127.0.0.1",
     "CLAMD_PORT=3310",
     f"MAX_UPLOAD_BYTES={stream_max * 1024 * 1024}",
+    f"WEB_AUTH={web_auth}",
+    f"LDAP_GROUP={(data.get('ldap_group') or '').strip()}",
     f"WEB_USER={web_user}",
     f"WEB_PASSWORD_PBKDF2={web_hash}",
     f"WEB_TITLE=ClamAV scanner ({web_host or os.environ.get('MODULE_ID', 'clamav')})",

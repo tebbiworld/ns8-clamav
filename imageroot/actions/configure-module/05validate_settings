@@ -36,13 +36,27 @@ for key in ("max_file_size_mb", "max_scan_size_mb", "stream_max_length_mb"):
 if data.get("max_file_size_mb") and data.get("stream_max_length_mb") and int(data["stream_max_length_mb"]) < int(data["max_file_size_mb"]):
     fail("stream_max_length_mb", data["stream_max_length_mb"], "stream_smaller_than_file")
 
-# Web front end: a first enable needs a password (later saves may keep it)
+# Web front end: a local login needs a password on the first enable (later
+# saves may keep it), a directory login needs a user domain of the cluster
 if (data.get("web_host") or "").strip():
-    if not (data.get("web_user") or "").strip():
+    web_auth = data.get("web_auth", "local")
+    local = web_auth == "local"
+    if local and not (data.get("web_user") or "").strip():
         fail("web_user", "", "web_user_required")
-    if not data.get("web_password") and not modsecrets.get("WEB_PASSWORD_PBKDF2"):
+    if local and not data.get("web_password") and not modsecrets.get("WEB_PASSWORD_PBKDF2"):
         fail("web_password", "", "web_password_required")
-    if data.get("web_password") and len(data["web_password"]) < 8:
+    if web_auth == "ldap":
+        domain = (data.get("ldap_domain") or "").strip()
+        if not domain:
+            fail("ldap_domain", "", "ldap_domain_required")
+        else:
+            import cluster.userdomains
+            rdb = agent.redis_connect(use_replica=True)
+            # a restore on a cluster without that domain keeps the stored
+            # value: the front end then refuses every login until it is fixed
+            if domain not in cluster.userdomains.list_domains(rdb) and domain != os.environ.get("LDAP_DOMAIN"):
+                fail("ldap_domain", domain, "ldap_domain_unknown")
+    if local and data.get("web_password") and len(data["web_password"]) < 8:
         fail("web_password", "", "web_password_too_short")
     import ipaddress
     for cidr in data.get("ip_allowlist") or []:

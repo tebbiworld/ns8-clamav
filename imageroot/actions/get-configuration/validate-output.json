@@ -53,6 +53,22 @@
         "http2https": {
             "type": "boolean"
         },
+        "web_auth": {
+            "type": "string",
+            "enum": ["none", "local", "ldap"]
+        },
+        "ldap_domain": {
+            "type": "string"
+        },
+        "ldap_group": {
+            "type": "string"
+        },
+        "user_domains": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
         "web_user": {
             "type": "string"
         },
