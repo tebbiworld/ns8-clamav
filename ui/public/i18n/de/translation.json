@@ -47,7 +47,7 @@
         "signature_checks_per_day": "Signatur-Updates pro Tag",
         "signature_checks_per_day_helper": "So oft prüft freshclam database.clamav.net pro Tag.",
         "nextcloud_hint_title": "Nextcloud",
-        "nextcloud_hint_desc": "App „Antivirus für Dateien“ installieren, Modus „Daemon (Host)“ wählen, Adresse aus der Liste oben und Port 3310 eintragen. Nextcloud auf demselben Knoten: 10.0.2.2. Nextcloud auf einem anderen Knoten: die VPN-Adresse dieses Knotens.",
+        "nextcloud_hint_desc": "App „Antivirus für Dateien“ installieren, Modus „Daemon (Host)“ wählen und die Werte unten eintragen – ins Feld „Host“ nur die Adresse, den Port ins eigene Feld „Port“.",
         "port_3310_in_use": "TCP 3310 ist auf diesem Knoten bereits belegt (weitere ClamAV-Instanz?)",
         "size_out_of_range": "Wert zwischen 1 und 4000 MB eingeben",
         "stream_smaller_than_file": "Die Stream-Länge darf nicht kleiner als die maximale Dateigrösse sein",
@@ -87,7 +87,11 @@
         "web_password_required": "Passwort erforderlich, um das Web-Frontend zu aktivieren",
         "web_password_too_short": "Mindestens 8 Zeichen",
         "invalid_cidr": "Ungültiges Netz (CIDR)",
-        "domain_already_used_in_traefik": "Dieser Hostname wird bereits von einer anderen Instanz verwendet."
+        "domain_already_used_in_traefik": "Dieser Hostname wird bereits von einer anderen Instanz verwendet.",
+        "nextcloud_instance": "{module} (Knoten {node}):",
+        "nextcloud_host": "Host",
+        "nextcloud_port": "Port",
+        "nextcloud_none": "Im Cluster ist keine Nextcloud installiert. Gleicher Knoten: 10.0.2.2, anderer Knoten: die VPN-Adresse oben."
     },
     "about": {
         "title": "Über"

@@ -47,7 +47,7 @@
         "signature_checks_per_day": "Signature update checks per day",
         "signature_checks_per_day_helper": "freshclam checks database.clamav.net this many times per day.",
         "nextcloud_hint_title": "Nextcloud",
-        "nextcloud_hint_desc": "Install the app 'Antivirus for files', choose mode 'Daemon (host)', enter the address from the list above and port 3310. Nextcloud on the same node: 10.0.2.2. Nextcloud on another node: the VPN address of this node.",
+        "nextcloud_hint_desc": "Install the app 'Antivirus for files', choose mode 'Daemon (host)' and enter the values below – the address only in the 'Host' field, the port in its own 'Port' field.",
         "port_3310_in_use": "TCP 3310 is already in use on this node (another ClamAV instance?)",
         "size_out_of_range": "Enter a value between 1 and 4000 MB",
         "stream_smaller_than_file": "The stream length must not be smaller than the maximum file size",
@@ -87,7 +87,11 @@
         "web_password_required": "Password required to enable the web front end",
         "web_password_too_short": "At least 8 characters",
         "invalid_cidr": "Invalid network (CIDR)",
-        "domain_already_used_in_traefik": "This host name is already used by another instance."
+        "domain_already_used_in_traefik": "This host name is already used by another instance.",
+        "nextcloud_instance": "{module} (node {node}):",
+        "nextcloud_host": "Host",
+        "nextcloud_port": "Port",
+        "nextcloud_none": "No Nextcloud is installed in the cluster. Same node: 10.0.2.2, other node: the VPN address above."
     },
     "about": {
         "title": "About"

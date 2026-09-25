@@ -33,10 +33,10 @@
             <NsInlineNotification kind="info" :title="$t('settings.endpoints_title')" :showCloseButton="false" class="info-tile">
               <template #description>
                 <div class="endpoints">
-                  <div><strong>{{ $t("settings.ep_same_node_slirp") }}</strong> <code>10.0.2.2:{{ port }}</code></div>
-                  <div><strong>{{ $t("settings.ep_same_node_pasta") }}</strong> <code>host.containers.internal:{{ port }}</code></div>
-                  <div v-if="vpn_address"><strong>{{ $t("settings.ep_vpn") }}</strong> <code>{{ vpn_address }}:{{ port }}</code></div>
-                  <div v-if="listen_lan && lan_addresses.length"><strong>{{ $t("settings.ep_lan") }}</strong> <code v-for="a in lan_addresses" :key="a">{{ a }}:{{ port }} </code></div>
+                  <div><strong>{{ $t("settings.ep_same_node_slirp") }}</strong> <code>10.0.2.2</code></div>
+                  <div><strong>{{ $t("settings.ep_same_node_pasta") }}</strong> <code>host.containers.internal</code></div>
+                  <div v-if="vpn_address"><strong>{{ $t("settings.ep_vpn") }}</strong> <code>{{ vpn_address }}</code></div>
+                  <div v-if="listen_lan && lan_addresses.length"><strong>{{ $t("settings.ep_lan") }}</strong> <code v-for="a in lan_addresses" :key="a">{{ a }} </code></div>
                   <div class="ep-hint">{{ $t("settings.ep_hint") }}</div>
                 </div>
               </template>
@@ -85,7 +85,19 @@
             <cv-number-input :label="$t('settings.stream_max_length_mb')" v-model="stream_max_length_mb" :min="1" :max="4000" :helper-text="$t('settings.stream_max_length_mb_helper')" :invalid-message="$t(error.stream_max_length_mb)" :disabled="loading.getConfiguration || loading.configureModule" ref="stream_max_length_mb" class="field"></cv-number-input>
             <cv-number-input :label="$t('settings.signature_checks_per_day')" v-model="signature_checks_per_day" :min="1" :max="48" :helper-text="$t('settings.signature_checks_per_day_helper')" :disabled="loading.getConfiguration || loading.configureModule" class="field"></cv-number-input>
 
-            <NsInlineNotification kind="info" :title="$t('settings.nextcloud_hint_title')" :description="$t('settings.nextcloud_hint_desc')" :showCloseButton="false" class="info-tile" />
+            <NsInlineNotification kind="info" :title="$t('settings.nextcloud_hint_title')" :showCloseButton="false" class="info-tile">
+              <template #description>
+                <div class="endpoints">
+                  <div>{{ $t("settings.nextcloud_hint_desc") }}</div>
+                  <div v-for="nc in nextcloud_clients" :key="nc.module_id">
+                    <strong>{{ $t("settings.nextcloud_instance", { module: nc.module_id, node: nc.node_id }) }}</strong>
+                    {{ $t("settings.nextcloud_host") }} <code>{{ nc.host || "–" }}</code>
+                    {{ $t("settings.nextcloud_port") }} <code>{{ port }}</code>
+                  </div>
+                  <div v-if="!nextcloud_clients.length" class="ep-hint">{{ $t("settings.nextcloud_none") }}</div>
+                </div>
+              </template>
+            </NsInlineNotification>
 
             <cv-row v-if="error.configureModule">
               <cv-column>
@@ -139,6 +151,7 @@ export default {
       port: 3310,
       vpn_address: "",
       lan_addresses: [],
+      nextcloud_clients: [],
       loading: { getConfiguration: false, configureModule: false },
       error: { getConfiguration: "", configureModule: "", listen_lan: "", max_file_size_mb: "", max_scan_size_mb: "", stream_max_length_mb: "", web_host: "", web_user: "", web_password: "", ldap_domain: "", ldap_group: "", ip_allowlist: "" },
     };
@@ -204,6 +217,7 @@ export default {
       this.port = c.port || 3310;
       this.vpn_address = c.vpn_address || "";
       this.lan_addresses = c.lan_addresses || [];
+      this.nextcloud_clients = c.nextcloud_clients || [];
     },
     allowlistItems() {
       return this.ip_allowlist.split(/[\s,]+/).map((x) => x.trim()).filter((x) => x);
