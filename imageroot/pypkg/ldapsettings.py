@@ -63,6 +63,10 @@ def apply(data, active, legacy_source="domain"):
     if source == "domain":
         domain = (data.get("ldap_domain") or "").strip()
         _set("LDAP_DOMAIN", domain)
+        # a user domain needs no credentials of the module: drop a bind
+        # password stored for a server of its own
+        if modsecrets.get(PASSWORD_KEY):
+            modsecrets.write({PASSWORD_KEY: ""})
 
     if source == "custom":
         url = (data.get("ldap_url") or "").strip()
