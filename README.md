@@ -162,6 +162,9 @@ backed up on purpose; after a restore the container downloads it again.
 * `update-module` restarts the daemon, so a new pinned ClamAV version runs right
   after the update.
 * `runagent -m clamav1 podman logs clamav` shows freshclam and clamd output.
+* Every scan of the web/REST front end writes one line to the journal, e.g.
+  `event="scan" result="infected" file="invoice.pdf" size="18432" signature="Win.Test.EICAR_HDB-1" user="alice" src="192.0.2.10"`
+  - ready for a Loki query such as `{...} |= "event=\"scan\"" | logfmt | result="infected"`.
 * The settings page warns when the signature database is older than two days
   (freshclam could not update it).
 * The directory login code is shared with ns8-idevice-backup and kept
