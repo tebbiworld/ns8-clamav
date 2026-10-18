@@ -119,6 +119,44 @@
                     "host"
                 ]
             }
+        },
+        "ldap_source": {
+            "type": "string",
+            "enum": [
+                "domain",
+                "custom"
+            ]
+        },
+        "ldap_url": {
+            "type": "string"
+        },
+        "ldap_schema": {
+            "type": "string"
+        },
+        "ldap_base_dn": {
+            "type": "string"
+        },
+        "ldap_bind_dn": {
+            "type": "string"
+        },
+        "ldap_user_attribute": {
+            "type": "string"
+        },
+        "ldap_start_tls": {
+            "type": "boolean"
+        },
+        "ldap_tls_verify": {
+            "type": "boolean"
+        },
+        "ldap_bind_password_set": {
+            "type": "boolean"
+        },
+        "signature_age_hours": {
+            "type": [
+                "integer",
+                "null"
+            ],
+            "description": "Hours since the signature database was built; null when unknown."
         }
     }
 }

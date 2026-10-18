@@ -15,6 +15,7 @@ import subprocess
 import sys
 
 import agent
+import ldapsettings
 import modsecrets
 
 agent.set_weight(os.path.basename(__file__), 0)
@@ -37,7 +38,7 @@ if data.get("max_file_size_mb") and data.get("stream_max_length_mb") and int(dat
     fail("stream_max_length_mb", data["stream_max_length_mb"], "stream_smaller_than_file")
 
 # Web front end: a local login needs a password on the first enable (later
-# saves may keep it), a directory login needs a user domain of the cluster
+# saves may keep it), a directory login needs its connection settings
 if (data.get("web_host") or "").strip():
     web_auth = data.get("web_auth", "local")
     local = web_auth == "local"
@@ -45,17 +46,9 @@ if (data.get("web_host") or "").strip():
         fail("web_user", "", "web_user_required")
     if local and not data.get("web_password") and not modsecrets.get("WEB_PASSWORD_PBKDF2"):
         fail("web_password", "", "web_password_required")
-    if web_auth == "ldap":
-        domain = (data.get("ldap_domain") or "").strip()
-        if not domain:
-            fail("ldap_domain", "", "ldap_domain_required")
-        else:
-            import cluster.userdomains
-            rdb = agent.redis_connect(use_replica=True)
-            # a restore on a cluster without that domain keeps the stored
-            # value: the front end then refuses every login until it is fixed
-            if domain not in cluster.userdomains.list_domains(rdb) and domain != os.environ.get("LDAP_DOMAIN"):
-                fail("ldap_domain", domain, "ldap_domain_unknown")
+    # directory login: a user domain of the cluster or an LDAP server of its own
+    for field, error in ldapsettings.validate(data, active=web_auth == "ldap"):
+        fail(field, data.get(field, "") if field != "ldap_bind_password" else "", error)
     if local and data.get("web_password") and len(data["web_password"]) < 8:
         fail("web_password", "", "web_password_too_short")
     import ipaddress

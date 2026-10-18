@@ -15,6 +15,7 @@ import subprocess
 import sys
 
 import agent
+import ldapsettings
 import modsecrets
 
 def clamd_version():
@@ -67,12 +68,14 @@ def nextcloud_clients(vpn):
         print(agent.SD_WARNING + f"nextcloud discovery failed: {ex}", file=sys.stderr)
     return clients
 
-def user_domains():
+def signature_age_hours(date):
+    """Age of the signature database ("Sun Oct 18 08:20:01 2026", UTC)."""
+    import datetime
     try:
-        import cluster.userdomains
-        return sorted(cluster.userdomains.list_domains(agent.redis_connect(use_replica=True)))
-    except Exception:
-        return []
+        built = datetime.datetime.strptime(date.strip(), "%a %b %d %H:%M:%S %Y").replace(tzinfo=datetime.timezone.utc)
+    except ValueError:
+        return None
+    return max(0, int((datetime.datetime.now(datetime.timezone.utc) - built).total_seconds() // 3600))
 
 version = clamd_version()
 lan, vpn = node_addresses()
@@ -88,6 +91,7 @@ config = {
     "engine_version": parts[0].replace("ClamAV ", "") if parts else "",
     "signature_version": parts[1] if len(parts) > 1 else "",
     "signature_date": parts[2] if len(parts) > 2 else "",
+    "signature_age_hours": signature_age_hours(parts[2]) if len(parts) > 2 else None,
     "port": 3310,
     "vpn_address": vpn,
     "lan_addresses": lan,
@@ -97,13 +101,12 @@ config = {
     "lets_encrypt": bool(os.getenv("WEB_HOST")) and agent.get_route(os.environ["MODULE_ID"]).get("lets_encrypt", False),
     "http2https": os.getenv("TRAEFIK_HTTP2HTTPS", "True") == "True",
     "web_auth": os.getenv("WEB_AUTH", "local"),
-    "ldap_domain": os.getenv("LDAP_DOMAIN", ""),
-    "ldap_group": os.getenv("LDAP_GROUP", ""),
-    "user_domains": user_domains(),
     "web_user": os.getenv("WEB_USER", "scan"),
     "web_password_set": bool(modsecrets.get("WEB_PASSWORD_PBKDF2")),
     "ip_allowlist": [c for c in os.getenv("IP_ALLOWLIST", "").split(",") if c],
     "web_url": f"https://{os.getenv('WEB_HOST')}/" if os.getenv("WEB_HOST") else "",
     "web_port": os.getenv("WEB_PORT", ""),
 }
+# ldap_* settings and user_domains, never the bind password
+config.update(ldapsettings.configuration())
 json.dump(config, fp=sys.stdout)

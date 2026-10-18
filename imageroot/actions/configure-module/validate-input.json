@@ -20,7 +20,8 @@
             "web_password": "s3cret-Passw0rd",
             "ip_allowlist": [
                 "192.168.1.0/24"
-            ]
+            ],
+            "ldap_source": "domain"
         }
     ],
     "type": "object",
@@ -80,21 +81,89 @@
         },
         "web_auth": {
             "type": "string",
-            "enum": ["none", "local", "ldap"],
+            "enum": [
+                "none",
+                "local",
+                "ldap"
+            ],
             "title": "Login",
-            "description": "How the web front end and the REST API check logins: none (anyone who reaches the route may scan: restrict it with ip_allowlist), local (web_user + web_password) or ldap (users of the user domain ldap_domain).",
+            "description": "How the web front end and the REST API check logins: none (anyone who reaches the route may scan: restrict it with ip_allowlist), local (web_user + web_password) or ldap (directory users, see ldap_source).",
             "default": "local"
+        },
+        "ldap_source": {
+            "type": "string",
+            "enum": [
+                "domain",
+                "custom"
+            ],
+            "title": "Directory",
+            "description": "domain: a user domain of this cluster (no credentials stored in the module); custom: an LDAP server entered here.",
+            "default": "domain"
         },
         "ldap_domain": {
             "type": "string",
             "title": "User domain",
-            "description": "User domain of the cluster whose users may log in (web_auth ldap)."
+            "description": "User domain of the cluster whose users may log in (ldap_source domain)."
         },
         "ldap_group": {
             "type": "string",
             "title": "Group",
-            "description": "Only members of this group (also nested) may log in; empty allows every user of the domain.",
+            "description": "Only members of this group (also nested AD groups) may log in: a group name, for an LDAP server of its own also a DN; empty allows every user.",
             "maxLength": 256
+        },
+        "ldap_url": {
+            "type": "string",
+            "title": "LDAP server URL",
+            "description": "ldaps://host:636 or ldap://host:389 (ldap_source custom).",
+            "pattern": "^$|^ldaps?://[^\\s/]+/?$",
+            "maxLength": 256
+        },
+        "ldap_start_tls": {
+            "type": "boolean",
+            "title": "StartTLS",
+            "description": "Upgrade an ldap:// connection with StartTLS.",
+            "default": false
+        },
+        "ldap_tls_verify": {
+            "type": "boolean",
+            "title": "Verify the server certificate",
+            "description": "Check the LDAP server certificate against the system CAs (ldaps:// or StartTLS).",
+            "default": true
+        },
+        "ldap_schema": {
+            "type": "string",
+            "enum": [
+                "ad",
+                "rfc2307"
+            ],
+            "title": "Directory type",
+            "description": "ad (Active Directory, Samba) or rfc2307 (OpenLDAP posixAccount).",
+            "default": "ad"
+        },
+        "ldap_base_dn": {
+            "type": "string",
+            "title": "Base DN",
+            "maxLength": 512
+        },
+        "ldap_bind_dn": {
+            "type": "string",
+            "title": "Bind DN",
+            "description": "Service account used to look up users.",
+            "maxLength": 512
+        },
+        "ldap_bind_password": {
+            "type": "string",
+            "title": "Bind password",
+            "description": "New password of the service account; empty keeps the stored one. Stored in state/passwords.env.",
+            "format": "password",
+            "maxLength": 256
+        },
+        "ldap_user_attribute": {
+            "type": "string",
+            "title": "Login attribute",
+            "description": "Empty: sAMAccountName (ad) or uid (rfc2307).",
+            "pattern": "^[A-Za-z][A-Za-z0-9-]*$|^$",
+            "maxLength": 64
         },
         "web_user": {
             "type": "string",
