@@ -38,6 +38,11 @@ def _env(name, default=""):
     return os.environ.get(name, default)
 
 
+def _set(name, value):
+    agent.set_env(name, value)
+    os.environ[name] = value
+
+
 def apply(data, active, legacy_source="domain"):
     """Persist the settings of a configure-module request.
 
@@ -50,30 +55,39 @@ def apply(data, active, legacy_source="domain"):
         agent.set_status("validation-failed")
         print(f"ldap_source must be one of {SOURCES}", file=sys.stderr)
         sys.exit(2)
-    agent.set_env("LDAP_SOURCE", source)
-    agent.set_env("LDAP_GROUP", (data.get("ldap_group") or "").strip())
+    _set("LDAP_SOURCE", source)
+    _set("LDAP_GROUP", (data.get("ldap_group") or "").strip())
 
     # for a server of its own LDAP_DOMAIN keeps its last value: some modules
     # use it as a label of the accounts (e.g. the owner domain of a device)
-    domain = ""
     if source == "domain":
         domain = (data.get("ldap_domain") or "").strip()
-        agent.set_env("LDAP_DOMAIN", domain)
+        _set("LDAP_DOMAIN", domain)
 
     if source == "custom":
         url = (data.get("ldap_url") or "").strip()
-        agent.set_env("LDAP_URL", url)
-        agent.set_env("LDAP_START_TLS", "true" if data.get("ldap_start_tls") else "false")
-        agent.set_env("LDAP_TLS_VERIFY", "false" if data.get("ldap_tls_verify") is False else "true")
-        agent.set_env("LDAP_SCHEMA", data.get("ldap_schema") or "ad")
-        agent.set_env("LDAP_BASE_DN", (data.get("ldap_base_dn") or "").strip())
-        agent.set_env("LDAP_BIND_DN", (data.get("ldap_bind_dn") or "").strip())
-        agent.set_env("LDAP_USER_ATTRIBUTE", (data.get("ldap_user_attribute") or "").strip())
+        _set("LDAP_URL", url)
+        # a client that does not send a field keeps the stored value
+        if "ldap_start_tls" in data:
+            _set("LDAP_START_TLS", "true" if data["ldap_start_tls"] else "false")
+        if "ldap_tls_verify" in data:
+            _set("LDAP_TLS_VERIFY", "false" if data["ldap_tls_verify"] is False else "true")
+        _set("LDAP_SCHEMA", data.get("ldap_schema") or _env("LDAP_SCHEMA") or "ad")
+        _set("LDAP_BASE_DN", (data.get("ldap_base_dn") or "").strip())
+        _set("LDAP_BIND_DN", (data.get("ldap_bind_dn") or "").strip())
+        _set("LDAP_USER_ATTRIBUTE", (data.get("ldap_user_attribute") or "").strip())
         password = data.get("ldap_bind_password") or ""
         if password:
             modsecrets.write({PASSWORD_KEY: password})
 
-    # declare the user domain the module consumes (none for a custom server)
+    bind_domain(active)
+    return source
+
+
+def bind_domain(active):
+    """Declare the user domain the module consumes (none for a server of its
+    own or when the directory login is off)."""
+    domain = _env("LDAP_DOMAIN") if _env("LDAP_SOURCE", "domain") == "domain" else ""
     bind = [domain] if active and domain else []
     if bind:
         import cluster.userdomains
@@ -81,7 +95,13 @@ def apply(data, active, legacy_source="domain"):
             print(agent.SD_WARNING + f"user domain {domain} does not exist in this cluster: logins are refused", file=sys.stderr)
             bind = []
     agent.bind_user_domains(bind, check=True)
-    return source
+
+
+def complete():
+    """The stored settings are enough to try a login."""
+    if _env("LDAP_SOURCE", "domain") == "domain":
+        return bool(_env("LDAP_DOMAIN"))
+    return bool(_env("LDAP_URL") and _env("LDAP_BASE_DN") and _env("LDAP_BIND_DN") and modsecrets.get(PASSWORD_KEY))
 
 
 def validate(data, active):
@@ -139,12 +159,12 @@ def configuration():
     }
 
 
-def restore_data():
+def restore_data(default_source="domain"):
     """The ldap_* fields of configure-module from the restored environment
     (restore-module, clone-module); the bind password stays blank = keep the
     restored state/passwords.env."""
     return {
-        "ldap_source": _env("LDAP_SOURCE", "domain") or "domain",
+        "ldap_source": _env("LDAP_SOURCE") or default_source,
         "ldap_domain": _env("LDAP_DOMAIN"),
         "ldap_group": _env("LDAP_GROUP"),
         "ldap_url": _env("LDAP_URL"),
