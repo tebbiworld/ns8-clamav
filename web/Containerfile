@@ -3,10 +3,10 @@
 #
 # HTTP/REST front end for the ClamAV module: a single-file Python application
 # that streams uploads to clamd and answers JSON. ldap3 (pure Python) checks
-# logins against the NS8 user domain.
+# logins against an NS8 user domain or an LDAP server (ldapauth.py).
 FROM docker.io/library/python:3.12-alpine
 RUN pip install --no-cache-dir ldap3==2.9.1 pyasn1==0.6.4
-COPY app.py /app/app.py
+COPY app.py ldapauth.py favicon.png /app/
 RUN adduser -D -H web
 USER web
 ENTRYPOINT ["python3", "/app/app.py"]

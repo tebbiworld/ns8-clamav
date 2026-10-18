@@ -11,14 +11,16 @@ Endpoints (login required unless noted or WEB_AUTH=none):
                          body with header X-Filename; returns JSON per file
   GET  /api/v1/version   clamd engine / signature version
   GET  /api/v1/health    no login; 200 when clamd answers PING
+  GET  /favicon.ico      no login; the ClamAV logo (also /favicon.png)
 The API takes the session cookie of the page or HTTP basic authentication.
 
 WEB_AUTH selects how logins are checked:
   none   no login at all; access is limited only by the Traefik IP allow-list
   local  WEB_USER + WEB_PASSWORD_PBKDF2 (salt$iterations$hex)
-  ldap   a user of the NS8 user domain, through the node's ldapproxy
-         (LDAP_HOST/PORT/BASE_DN/BIND_DN/BIND_PASSWORD/SCHEMA, written by
-         bin/discover-ldap), optionally only members of LDAP_GROUP
+  ldap   a directory user: of an NS8 user domain through the node's
+         ldapproxy, or of an LDAP server of its own (LDAP_* variables
+         written by bin/discover-ldap, see ldapauth.py), optionally only
+         members of LDAP_GROUP
 Other settings: HOST, PORT, CLAMD_HOST, CLAMD_PORT, MAX_UPLOAD_BYTES,
 WEB_TITLE.
 """
@@ -41,6 +43,8 @@ from email.parser import BytesParser
 from email.policy import default as email_policy
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import ldapauth
+
 HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "8080"))
 CLAMD = (os.environ.get("CLAMD_HOST", "127.0.0.1"), int(os.environ.get("CLAMD_PORT", "3310")))
@@ -48,8 +52,13 @@ MAX_UPLOAD = int(os.environ.get("MAX_UPLOAD_BYTES", str(100 * 1024 * 1024)))
 WEB_AUTH = os.environ.get("WEB_AUTH", "local").lower()
 WEB_USER = os.environ.get("WEB_USER", "")
 WEB_HASH = os.environ.get("WEB_PASSWORD_PBKDF2", "")
-LDAP = {k: os.environ.get("LDAP_" + k, "") for k in ("HOST", "PORT", "BASE_DN", "BIND_DN", "BIND_PASSWORD", "SCHEMA", "GROUP")}
+LDAP = ldapauth.Settings()
 TITLE = os.environ.get("WEB_TITLE", "ClamAV scanner")
+try:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "favicon.png"), "rb") as _fp:
+        FAVICON = _fp.read()
+except OSError:
+    FAVICON = b""
 
 SESSION_COOKIE = "clamav_session"
 SESSION_SECONDS = 8 * 3600
@@ -114,51 +123,10 @@ def check_local(user: str, password: str) -> bool:
 
 
 def check_ldap(user: str, password: str) -> bool:
-    import ldap3
-    from ldap3.utils.conv import escape_filter_chars
-    if not LDAP["HOST"] or not LDAP["BASE_DN"]:
-        print("login refused: the user domain is not available (see bin/discover-ldap)", file=sys.stderr)
+    if not LDAP.configured:
+        print("login refused: the directory is not available (see bin/discover-ldap)", file=sys.stderr)
         return False
-    # the ldapproxy listens in clear text on the node's loopback and talks TLS
-    # to the directory itself
-    server = ldap3.Server(LDAP["HOST"], port=int(LDAP["PORT"] or 389), connect_timeout=5)
-    ad = LDAP["SCHEMA"] == "ad"
-    name = escape_filter_chars(user)
-    if ad:
-        # enabled user accounts only
-        ufilter = f"(&(objectClass=user)(sAMAccountName={name})(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
-    else:
-        ufilter = f"(&(objectClass=posixAccount)(uid={name}))"
-    try:
-        with ldap3.Connection(server, LDAP["BIND_DN"], LDAP["BIND_PASSWORD"], auto_bind=True, receive_timeout=10) as conn:
-            conn.search(LDAP["BASE_DN"], ufilter, attributes=[])
-            if len(conn.entries) != 1:
-                return False
-            user_dn = conn.entries[0].entry_dn
-            group = LDAP["GROUP"]
-            if group:
-                gname = escape_filter_chars(group)
-                if ad:
-                    conn.search(LDAP["BASE_DN"], f"(&(objectClass=group)(sAMAccountName={gname}))", attributes=[])
-                    if len(conn.entries) != 1:
-                        print(f"login refused: group {group!r} not found", file=sys.stderr)
-                        return False
-                    group_dn = escape_filter_chars(conn.entries[0].entry_dn)
-                    # LDAP_MATCHING_RULE_IN_CHAIN: members of nested groups count too
-                    conn.search(user_dn, f"(memberOf:1.2.840.113556.1.4.1941:={group_dn})", search_scope=ldap3.BASE, attributes=[])
-                else:
-                    conn.search(LDAP["BASE_DN"], f"(&(objectClass=posixGroup)(cn={gname})(memberUid={name}))", attributes=[])
-                if len(conn.entries) < 1:
-                    print(f"login refused: {user} is not a member of {group}", file=sys.stderr)
-                    return False
-        # the password check itself: bind as the user
-        with ldap3.Connection(server, user_dn, password, auto_bind=True, receive_timeout=10):
-            return True
-    except ldap3.core.exceptions.LDAPBindError:
-        return False
-    except ldap3.core.exceptions.LDAPException as exc:
-        print(f"LDAP error: {exc}", file=sys.stderr)
-        return False
+    return ldapauth.authenticate(LDAP, user, password) is not None
 
 
 def check_credentials(user: str, password: str) -> bool:
@@ -214,6 +182,7 @@ def session_user(cookie_header: str) -> str:
 
 
 PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{title}</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{{font-family:system-ui,sans-serif;max-width:40rem;margin:3rem auto;padding:0 1rem;color:#222}}
 h1{{font-size:1.4rem}} .logout{{float:right;margin-top:-3rem}} .box{{border:2px dashed #999;border-radius:8px;padding:2rem;text-align:center}}
@@ -238,6 +207,8 @@ function esc(s){{return String(s).replace(/[&<>"]/g,c=>({{'&':'&amp;','<':'&lt;'
 
 
 LOGIN_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{title}</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="icon" type="image/png" href="favicon.png">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{{font-family:system-ui,sans-serif;max-width:22rem;margin:4rem auto;padding:0 1rem;color:#222}}
 h1{{font-size:1.3rem}} label{{display:block;margin-top:1rem}} input{{width:100%;padding:.5rem;box-sizing:border-box;font-size:1rem}}
@@ -310,7 +281,7 @@ class Handler(BaseHTTPRequestHandler):
         return False
 
     def login_page(self, code: int = 200, error: str = "") -> None:
-        hint = "Log in with your account of the user domain." if WEB_AUTH == "ldap" else "Log in with the login name set in the ClamAV settings."
+        hint = "Log in with your directory account." if WEB_AUTH == "ldap" else "Log in with the login name set in the ClamAV settings."
         self.send_html(code, LOGIN_PAGE.format(title=html.escape(TITLE), hint=hint,
                                                error=f'<p class="error">{html.escape(error)}</p>' if error else ""))
 
@@ -340,6 +311,14 @@ class Handler(BaseHTTPRequestHandler):
             except OSError:
                 ok = False
             return self.send_json(200 if ok else 503, {"clamd": "up" if ok else "down"})
+        if path in ("/favicon.ico", "/favicon.png") and FAVICON:
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(len(FAVICON)))
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.end_headers()
+            self.wfile.write(FAVICON)
+            return
         if path == "/login":
             if WEB_AUTH == "none" or self.current_user():
                 return self.redirect("./")
@@ -423,12 +402,12 @@ if __name__ == "__main__":
     if WEB_AUTH == "local" and (not WEB_USER or not WEB_HASH):
         print("WEB_USER / WEB_PASSWORD_PBKDF2 not set: refusing to start without credentials", file=sys.stderr)
         sys.exit(1)
-    if WEB_AUTH == "ldap" and not LDAP["HOST"]:
+    if WEB_AUTH == "ldap" and not LDAP.configured:
         # keep running: the form shows up, every login is refused
-        print("WEB_AUTH=ldap but the user domain is not available: all logins will be refused", file=sys.stderr)
+        print("WEB_AUTH=ldap but the directory is not available: all logins will be refused", file=sys.stderr)
     if WEB_AUTH == "none":
         print("login disabled (WEB_AUTH=none): anyone who reaches the route may scan", file=sys.stderr)
     else:
-        print(f"login: {WEB_AUTH}" + (f", group {LDAP['GROUP']}" if WEB_AUTH == "ldap" and LDAP["GROUP"] else ""), file=sys.stderr)
+        print(f"login: {WEB_AUTH}" + (f", {LDAP.describe()}" if WEB_AUTH == "ldap" else ""), file=sys.stderr)
     print(f"clamav-web listening on {HOST}:{PORT}, clamd at {CLAMD[0]}:{CLAMD[1]}, max upload {MAX_UPLOAD} bytes", file=sys.stderr)
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
