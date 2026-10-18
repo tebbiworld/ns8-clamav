@@ -5,6 +5,8 @@ Resource    api.resource
 *** Variables ***
 ${CONFIG}    {"listen_lan":false,"max_file_size_mb":100,"max_scan_size_mb":400,"stream_max_length_mb":100,"signature_checks_per_day":12,"web_host":"clamav.ci.test","lets_encrypt":false,"http2https":true,"web_user":"scan","web_password":"Scan#Pass 12","ip_allowlist":[]}
 
+${CUSTOM_LDAP}    {"web_host":"clamav.ci.test","lets_encrypt":false,"http2https":true,"web_auth":"ldap","ldap_source":"custom","ldap_url":"ldaps://ldap.ci.test:636","ldap_tls_verify":true,"ldap_schema":"ad","ldap_base_dn":"DC=ci,DC=test","ldap_bind_dn":"CN=svc,DC=ci,DC=test","ldap_bind_password":"Bind#Pass 34","web_user":"scan","ip_allowlist":[]}
+
 *** Test Cases ***
 Install the module
     IF    '${SCENARIO}' == 'update'
@@ -52,6 +54,35 @@ Secrets are stored in passwords.env only
     ${mode} =    Run on node    runagent -m ${module_id} bash -c 'stat -c \%a "$AGENT_STATE_DIR/clamav-web.env"'
     Should Be Equal As Strings    ${mode.strip()}    600
 
+The favicon is served without login
+    ${out} =    Run on node    curl -sSk -o /dev/null -w '\%{http_code} \%{content_type}' -H 'Host: clamav.ci.test' https://127.0.0.1/favicon.ico
+    Should Be Equal As Strings    ${out.strip()}    200 image/png
+
+The signature age is reported
+    ${cfg} =    Run task    module/${module_id}/get-configuration    {}
+    Should Be True    ${cfg['signature_age_hours']} is not None and ${cfg['signature_age_hours']} >= 0
+
+Groups of an unknown user domain are an empty list
+    ${out} =    Run task    module/${module_id}/list-ldap-groups    {"domain":"no-such-domain.ci.test"}
+    Should Be Equal As Integers    ${{ len($out['groups']) }}    0
+
+A custom LDAP server keeps its bind password out of the environment
+    Run task    module/${module_id}/configure-module    ${CUSTOM_LDAP}    decode_json=${FALSE}
+    ${cfg} =    Run task    module/${module_id}/get-configuration    {}
+    Should Be Equal    ${cfg['web_auth']}    ldap
+    Should Be Equal    ${cfg['ldap_source']}    custom
+    Should Be Equal    ${cfg['ldap_url']}    ldaps://ldap.ci.test:636
+    Should Be True    ${cfg['ldap_bind_password_set']}
+    Should Be True    'ldap_bind_password' not in $cfg
+    Secrets are kept out of the module environment    ${module_id}
+    ${leaks} =    Run on node    runagent -m ${module_id} bash -c 'grep -c "Bind#Pass 34" "$AGENT_STATE_DIR/environment" || true'
+    Should Be Equal As Integers    ${leaks.strip()}    0
+    Wait Until Keyword Succeeds    30 times    5 seconds    The web front end uses the custom LDAP server
+
+Back to the local login
+    Run task    module/${module_id}/configure-module    ${CONFIG}    decode_json=${FALSE}
+    Wait Until Keyword Succeeds    30 times    5 seconds    Daemon is up and the web login works
+
 *** Keywords ***
 Daemon is up and the web login works
     ${cfg} =    Run task    module/${module_id}/get-configuration    {}
@@ -61,4 +92,15 @@ Daemon is up and the web login works
     ${code} =    Run on node    curl -sSk -o /dev/null -w '\%{http_code}' -H 'Host: clamav.ci.test' https://127.0.0.1/api/v1/version
     Should Be Equal As Strings    ${code.strip()}    401
     ${code} =    Run on node    curl -sSk -o /dev/null -w '\%{http_code}' -u 'scan:Scan#Pass 12' -H 'Host: clamav.ci.test' https://127.0.0.1/api/v1/version
+    Should Be Equal As Strings    ${code.strip()}    200
+
+The web front end uses the custom LDAP server
+    # discover-ldap writes the connection, with the bind password, to a
+    # private file outside the backup when clamav-web starts
+    ${env} =    Run on node    runagent -m ${module_id} bash -c 'stat -c \%a "$AGENT_STATE_DIR/ldap.env"; grep -E "^LDAP_(SOURCE|HOST|PORT|TLS)=" "$AGENT_STATE_DIR/ldap.env" | sort | tr "\\n" " "'
+    Should Be Equal As Strings    ${env.strip()}    600\nLDAP_HOST=ldap.ci.test LDAP_PORT=636 LDAP_SOURCE=custom LDAP_TLS=ssl
+    # the server does not exist: every login is refused, the service stays up
+    ${code} =    Run on node    curl -sSk -o /dev/null -w '\%{http_code}' -u 'scan:Scan#Pass 12' -H 'Host: clamav.ci.test' https://127.0.0.1/api/v1/version
+    Should Be Equal As Strings    ${code.strip()}    401
+    ${code} =    Run on node    curl -sSk -o /dev/null -w '\%{http_code}' -H 'Host: clamav.ci.test' https://127.0.0.1/api/v1/health
     Should Be Equal As Strings    ${code.strip()}    200
