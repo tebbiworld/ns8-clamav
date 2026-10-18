@@ -116,6 +116,7 @@ log in, see below) and the module publishes, through Traefik with TLS:
 | `POST /api/v1/scan` | multipart field `file` (several allowed) or a raw body with header `X-Filename`; JSON: `{"results":[{"file","size","result":"clean|infected|error","signature","detail"}],"infected":bool,"errors":bool}` |
 | `GET /api/v1/version` | engine and signature database version |
 | `GET /api/v1/health` | `{"clamd":"up"}` / 503 — no login, for monitoring |
+| `GET /favicon.ico` | the ClamAV logo — no login |
 
 ```
 curl -u scan:secret -F file=@invoice.pdf -F file=@setup.exe https://scan.example.org/api/v1/scan
@@ -123,10 +124,22 @@ curl -u scan:secret -F file=@invoice.pdf -F file=@setup.exe https://scan.example
 
 Everything except `/api/v1/health` requires a login, chosen under *Login*:
 
-- **Users of a user domain** — any user of an NS8 user domain (Active
-  Directory or OpenLDAP), optionally only members of one group (nested groups
-  count in AD). The module binds to the domain and reaches it through the
-  node's ldapproxy; no service account has to be entered.
+- **Directory users**, from one of two sources:
+  - **User domain of this cluster** (recommended) — any user of an NS8 user
+    domain (Active Directory or OpenLDAP). The module binds to the domain and
+    reaches it through the node's ldapproxy; no service account is entered or
+    stored, password changes and DC moves are followed automatically. The
+    group is chosen from a list read from the domain.
+  - **LDAP server of its own** (advanced) — URL (`ldaps://` or `ldap://` with
+    optional StartTLS), certificate check (on by default, system CAs), type
+    (Active Directory or OpenLDAP posixAccount), base DN, bind DN and password,
+    optional login attribute. The bind password is kept in
+    `state/passwords.env`, never in the module environment. Only needed for a
+    directory that is not a user domain: NS8 can also add an external AD/LDAP
+    as a user domain, which is then offered in the first choice.
+
+  In both cases the login can be limited to the members of one group (nested
+  groups count in AD; for a server of its own also a group DN).
 - **Own login name and password** — one account stored in the module.
 - **No login** — anyone who reaches the host name may scan; combine it with
   the allow-list of client networks, which Traefik enforces.
@@ -140,7 +153,8 @@ network on `127.0.0.1:<allocated port>`.
 
 ## Backup
 
-`state/environment` and `state/clamav.env` only. The signature database is not
+`state/environment`, `state/passwords.env` (password hash of the local login,
+bind password of an LDAP server of its own) and `state/clamav.env`. The signature database is not
 backed up on purpose; after a restore the container downloads it again.
 
 ## Notes
@@ -148,6 +162,11 @@ backed up on purpose; after a restore the container downloads it again.
 * `update-module` restarts the daemon, so a new pinned ClamAV version runs right
   after the update.
 * `runagent -m clamav1 podman logs clamav` shows freshclam and clamd output.
+* The settings page warns when the signature database is older than two days
+  (freshclam could not update it).
+* The directory login code is shared with ns8-idevice-backup and kept
+  identical there: `web/ldapauth.py` (login), `imageroot/pypkg/ldapsettings.py`
+  (settings, `ldap.env`, group list) and `ui/src/components/LdapLogin.vue`.
 * Test from the node: `printf 'zPING\0' | python3 -c "import socket,sys; s=socket.create_connection(('127.0.0.1',3310)); s.sendall(sys.stdin.buffer.read()); print(s.recv(16))"` → `b'PONG\x00'`.
 * The module logo is the official ClamAV mascot (© Cisco Systems, trademark), used unmodified to identify the packaged software.
 * ClamAV is GPL-2.0; the image is published by Cisco Talos and pulled at

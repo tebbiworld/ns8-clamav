@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Login with an LDAP server of its own.** Besides a user domain of the cluster, *Directory users* can now come from an LDAP server entered in the settings: URL (`ldaps://`, or `ldap://` with StartTLS), certificate check (on by default), Active Directory or OpenLDAP, base DN, bind DN and password, login attribute. The bind password is stored in `state/passwords.env` and never returned to the UI.
+- **Group from a list.** With a user domain the group is picked from the groups of the domain instead of typed in.
+- **Warning for old signatures.** The settings page warns when the signature database is older than two days.
+- **Favicon** for the web front end (ClamAV logo), served without login.
+
+### Changed
+
+- The directory login settings look and work the same as in the other tebbiworld modules (shared code: `ldapauth.py`, `ldapsettings.py`, `LdapLogin.vue`). Existing installations keep their user domain and group.
+
 ## 1.3.1 — 2026-09-25
 
 ### Changed
