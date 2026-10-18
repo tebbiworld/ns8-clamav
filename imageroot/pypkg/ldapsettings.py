@@ -53,8 +53,12 @@ def apply(data, active, legacy_source="domain"):
     agent.set_env("LDAP_SOURCE", source)
     agent.set_env("LDAP_GROUP", (data.get("ldap_group") or "").strip())
 
-    domain = (data.get("ldap_domain") or "").strip() if source == "domain" else ""
-    agent.set_env("LDAP_DOMAIN", domain)
+    # for a server of its own LDAP_DOMAIN keeps its last value: some modules
+    # use it as a label of the accounts (e.g. the owner domain of a device)
+    domain = ""
+    if source == "domain":
+        domain = (data.get("ldap_domain") or "").strip()
+        agent.set_env("LDAP_DOMAIN", domain)
 
     if source == "custom":
         url = (data.get("ldap_url") or "").strip()
