@@ -15,6 +15,7 @@ import sys
 import agent
 
 event = json.load(sys.stdin)
-if os.environ.get("WEB_AUTH") != "ldap" or event.get("domain") != os.environ.get("LDAP_DOMAIN"):
+if (os.environ.get("WEB_AUTH") != "ldap" or os.environ.get("LDAP_SOURCE", "domain") != "domain"
+        or event.get("domain") != os.environ.get("LDAP_DOMAIN")):
     sys.exit(0)
 agent.run_helper("systemctl", "--user", "-T", "try-restart", "clamav-web.service")

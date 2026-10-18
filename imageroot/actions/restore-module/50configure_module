@@ -6,13 +6,14 @@
 #
 
 # Re-apply the restored settings: every field configure-module accepts is
-# passed. The web password is left blank on purpose: blank = keep the restored
-# hash from passwords.env.
+# passed. The web and LDAP bind passwords are left blank on purpose: blank =
+# keep the restored values from passwords.env.
 
 import os
 import sys
 
 import agent
+import ldapsettings
 
 env = os.environ
 
@@ -26,12 +27,12 @@ data = {
     "lets_encrypt": env.get("TRAEFIK_LETS_ENCRYPT", "False") == "True",
     "http2https": env.get("TRAEFIK_HTTP2HTTPS", "True") == "True",
     "web_auth": env.get("WEB_AUTH", "local"),
-    "ldap_domain": env.get("LDAP_DOMAIN", ""),
-    "ldap_group": env.get("LDAP_GROUP", ""),
     "web_user": env.get("WEB_USER", "scan"),
     "web_password": "",
     "ip_allowlist": [c for c in env.get("IP_ALLOWLIST", "").split(",") if c],
 }
+# directory login settings; the bind password stays in the restored passwords.env
+data.update(ldapsettings.restore_data())
 if "TRAEFIK_LETS_ENCRYPT" not in env:
     # A backup taken with a module version that did not record the setting: say
     # so instead of silently asserting "off". The route is created without a
