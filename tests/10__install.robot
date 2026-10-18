@@ -83,6 +83,12 @@ Back to the local login
     Run task    module/${module_id}/configure-module    ${CONFIG}    decode_json=${FALSE}
     Wait Until Keyword Succeeds    30 times    5 seconds    Daemon is up and the web login works
 
+A scan writes a journal line
+    Run on node    printf 'X5O!P%%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' > /tmp/ci-eicar.txt
+    Run on node    curl -sSk -o /dev/null -u 'scan:Scan#Pass 12' -F file=@/tmp/ci-eicar.txt -H 'Host: clamav.ci.test' https://127.0.0.1/api/v1/scan
+    ${n} =    Run on node    runagent -m ${module_id} bash -c 'journalctl --user -u clamav-web --since -5min -o cat | grep -c "event=.scan. result=.infected." || true'
+    Should Be True    ${n.strip()} >= 1
+
 *** Keywords ***
 Daemon is up and the web login works
     ${cfg} =    Run task    module/${module_id}/get-configuration    {}

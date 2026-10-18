@@ -98,6 +98,11 @@ def clamd_scan(payload: bytes) -> str:
         return recv_reply(s)
 
 
+def log_value(value) -> str:
+    """A value for a key="value" log line: no control characters or quotes."""
+    return re.sub(r'[\x00-\x1f\x7f"\\]', "_", str(value))[:200]
+
+
 def scan_result(name: str, payload: bytes) -> dict:
     try:
         reply = clamd_scan(payload)
@@ -386,6 +391,14 @@ class Handler(BaseHTTPRequestHandler):
                 results.append({"file": name, "size": len(payload), "result": "error", "detail": f"larger than {MAX_UPLOAD} bytes"})
             else:
                 results.append(scan_result(name, payload))
+        # one key=value line per file for the journal (and Loki): values
+        # quoted, control characters dropped, so a file name cannot forge one
+        user = self.current_user(api_post=True) or "-"
+        src = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
+        for r in results:
+            fields = {"event": "scan", "result": r["result"], "file": r["file"], "size": r["size"],
+                      "signature": r.get("signature", ""), "user": user, "src": src}
+            print(" ".join(f'{k}="{log_value(v)}"' for k, v in fields.items() if v != ""), file=sys.stderr, flush=True)
         infected = any(r["result"] == "infected" for r in results)
         errors = any(r["result"] == "error" for r in results)
         self.send_json(200, {"results": results, "infected": infected, "errors": errors})

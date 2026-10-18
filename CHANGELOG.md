@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **One journal line per scan** of the web/REST front end in `key="value"` form (result, file, size, signature, user, source address), ready for Loki/logfmt queries. File names cannot forge fields.
+
+### Changed
+
+- The directory login also reads the account's mail attribute (shared `ldapauth.py`, used by ns8-idevice-backup).
+- The module declares the minimum NS8 core it was tested with (`org.nethserver.min-core` 3.22.0).
+
 ## 1.4.0 — 2026-10-18
 
 ### Added

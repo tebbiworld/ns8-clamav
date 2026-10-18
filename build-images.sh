@@ -59,6 +59,7 @@ buildah config --entrypoint=/ \
     --label="org.nethserver.rootfull=0" \
     --label="org.nethserver.images=${runtime_images[*]}" \
     --label="org.nethserver.max-per-node=1" \
+    --label="org.nethserver.min-core=3.22.0" \
     "${container}"
 buildah commit "${container}" "${repobase}/${reponame}"
 
