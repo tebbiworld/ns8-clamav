@@ -1,7 +1,9 @@
 {
     "common": {
         "required": "Required",
-        "processing": "Processing..."
+        "processing": "Processing...",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
     },
     "status": {
         "title": "Status",
@@ -61,15 +63,9 @@
         "web_auth_off_title": "Login disabled",
         "web_auth_off_allowlist": "Everyone in the allowed client networks can use the upload form and the REST API without a password.",
         "web_auth_off_open": "No allowed client networks are set: anyone who reaches this host name can use the scanner without a password. Restrict the networks below.",
-        "web_auth_ldap": "Users of a user domain (LDAP / Active Directory)",
+        "web_auth_ldap": "Directory users (user domain or LDAP server)",
         "web_auth_local": "Own login name and password",
         "web_auth_none": "No login",
-        "ldap_domain": "User domain",
-        "ldap_group": "Group (optional)",
-        "ldap_group_placeholder": "scanner-users",
-        "ldap_group_helper": "Only members of this group may log in (nested groups count). Empty: every user of the domain.",
-        "ldap_domain_required": "Choose a user domain",
-        "ldap_domain_unknown": "This user domain does not exist in the cluster",
         "web_user": "Login name",
         "web_password": "Password",
         "web_password_helper": "At least 8 characters. For the login page and the REST API (HTTP basic authentication).",
@@ -91,7 +87,9 @@
         "nextcloud_instance": "{module} (node {node}):",
         "nextcloud_host": "Host",
         "nextcloud_port": "Port",
-        "nextcloud_none": "No Nextcloud is installed in the cluster. Same node: 10.0.2.2, other node: the VPN address above."
+        "nextcloud_none": "No Nextcloud is installed in the cluster. Same node: 10.0.2.2, other node: the VPN address above.",
+        "signatures_old_title": "Signatures are {hours} hours old",
+        "signatures_old": "freshclam has not updated the signature database for more than two days. Check the Internet access of the node and the clamav logs."
     },
     "about": {
         "title": "About"
@@ -120,5 +118,44 @@
         "404": "Resource not found",
         "cannot_retrieve_module_info": "Cannot retrieve module info",
         "cannot_retrieve_installed_modules": "Cannot retrieve installed modules"
+    },
+    "ldap_login": {
+        "source": "Directory",
+        "source_domain": "User domain of this cluster (recommended)",
+        "source_custom": "LDAP server of its own (advanced)",
+        "no_domains": "This cluster has no user domain yet. Add one in Domains and users, or enter an LDAP server.",
+        "domain": "User domain",
+        "group": "Group (optional)",
+        "group_placeholder": "Every user of the domain",
+        "loading_groups": "Loading groups…",
+        "group_helper": "Only members of this group may log in (nested groups count). Empty: every user of the domain.",
+        "group_custom_helper": "Group name or DN; only its members may log in. Empty: every user found under the base DN.",
+        "custom_intro": "Only needed for a directory that is not a user domain of this cluster. NS8 can also add an external AD/LDAP as a user domain (Domains and users): then it shows up above and no credentials are stored here.",
+        "url": "LDAP server URL",
+        "url_helper": "ldaps://host:636, or ldap://host:389 with StartTLS",
+        "start_tls": "StartTLS",
+        "tls_verify": "Verify the server certificate",
+        "tls_verify_off": "The certificate is not checked: someone in the network path could read the passwords. Only for tests or a trusted network.",
+        "schema": "Directory type",
+        "schema_ad": "Active Directory / Samba",
+        "schema_rfc2307": "OpenLDAP (posixAccount)",
+        "base_dn": "Base DN",
+        "bind_dn": "Bind DN (service account)",
+        "bind_password": "Bind password",
+        "bind_password_helper": "Password of the service account; stored outside the module environment.",
+        "user_attribute": "Login attribute (optional)",
+        "user_attribute_helper": "Empty: sAMAccountName (Active Directory) or uid (OpenLDAP)",
+        "secret_keep": "•••••••• (unchanged)",
+        "secret_is_set": "A password is stored — leave blank to keep it.",
+        "show": "Show",
+        "hide": "Hide",
+        "list_groups": "List groups",
+        "ldap_domain_required": "Choose a user domain",
+        "ldap_domain_unknown": "This user domain does not exist in the cluster",
+        "ldap_url_invalid": "Enter ldaps://host[:port] or ldap://host[:port]",
+        "start_tls_with_ldaps": "StartTLS is only for ldap:// URLs",
+        "ldap_base_dn_required": "Required",
+        "ldap_bind_dn_required": "Required",
+        "ldap_bind_password_required": "Required"
     }
 }

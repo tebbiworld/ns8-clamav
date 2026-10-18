@@ -41,6 +41,23 @@
             :showCloseButton="false"
             class="info-tile"
           />
+          <NsInlineNotification
+            v-if="
+              !loading.getConfiguration &&
+              daemon_up &&
+              signature_age_hours !== null &&
+              signature_age_hours > 48
+            "
+            kind="warning"
+            :title="
+              $t('settings.signatures_old_title', {
+                hours: signature_age_hours,
+              })
+            "
+            :description="$t('settings.signatures_old')"
+            :showCloseButton="false"
+            class="info-tile"
+          />
           <cv-form @submit.prevent="configureModule">
             <h4 class="section">{{ $t("settings.access_section") }}</h4>
             <cv-toggle
@@ -143,9 +160,7 @@
                   v-model="web_auth"
                   :label="$t('settings.web_auth_ldap')"
                   :disabled="
-                    loading.getConfiguration ||
-                    loading.configureModule ||
-                    !user_domains.length
+                    loading.getConfiguration || loading.configureModule
                   "
                 />
                 <cv-radio-button
@@ -167,37 +182,15 @@
                   "
                 />
               </cv-radio-group>
-              <template v-if="web_auth === 'ldap'">
-                <cv-dropdown
-                  :label="$t('settings.ldap_domain')"
-                  v-model="ldap_domain"
-                  :invalid-message="$t(error.ldap_domain)"
-                  :disabled="
-                    loading.getConfiguration || loading.configureModule
-                  "
-                  ref="ldap_domain"
-                  class="field"
-                >
-                  <cv-dropdown-item
-                    v-for="d in user_domains"
-                    :key="d"
-                    :value="d"
-                    >{{ d }}</cv-dropdown-item
-                  >
-                </cv-dropdown>
-                <cv-text-input
-                  :label="$t('settings.ldap_group')"
-                  v-model.trim="ldap_group"
-                  :placeholder="$t('settings.ldap_group_placeholder')"
-                  :helper-text="$t('settings.ldap_group_helper')"
-                  :invalid-message="$t(error.ldap_group)"
-                  :disabled="
-                    loading.getConfiguration || loading.configureModule
-                  "
-                  ref="ldap_group"
-                  class="field"
-                ></cv-text-input>
-              </template>
+              <LdapLogin
+                v-if="web_auth === 'ldap'"
+                v-model="ldap"
+                :userDomains="user_domains"
+                :bindPasswordSet="ldap_bind_password_set"
+                :errors="ldapErrors"
+                :disabled="loading.getConfiguration || loading.configureModule"
+                ref="ldap"
+              />
               <NsInlineNotification
                 v-if="web_auth === 'none'"
                 kind="warning"
@@ -385,9 +378,15 @@ import {
   IconService,
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
+import LdapLogin, {
+  LDAP_FIELDS,
+  ldapFromConfiguration,
+  validateLdap,
+} from "@/components/LdapLogin";
 
 export default {
   name: "Settings",
+  components: { LdapLogin },
   mixins: [
     TaskService,
     IconService,
@@ -411,8 +410,8 @@ export default {
       lets_encrypt: false,
       http2https: true,
       web_auth: "local",
-      ldap_domain: "",
-      ldap_group: "",
+      ldap: ldapFromConfiguration({}),
+      ldap_bind_password_set: false,
       user_domains: [],
       web_user: "scan",
       web_password: "",
@@ -423,6 +422,7 @@ export default {
       engine_version: "",
       signature_version: "",
       signature_date: "",
+      signature_age_hours: null,
       port: 3310,
       vpn_address: "",
       lan_addresses: [],
@@ -438,10 +438,9 @@ export default {
         web_host: "",
         web_user: "",
         web_password: "",
-        ldap_domain: "",
-        ldap_group: "",
         ip_allowlist: "",
       },
+      ldapErrors: {},
     };
   },
   computed: { ...mapState(["instanceName", "core", "appName"]) },
@@ -506,10 +505,8 @@ export default {
       this.http2https = c.http2https !== undefined ? !!c.http2https : true;
       this.web_auth = c.web_auth || "local";
       this.user_domains = c.user_domains || [];
-      this.ldap_domain =
-        c.ldap_domain ||
-        (this.user_domains.length === 1 ? this.user_domains[0] : "");
-      this.ldap_group = c.ldap_group || "";
+      this.ldap = ldapFromConfiguration(c);
+      this.ldap_bind_password_set = !!c.ldap_bind_password_set;
       this.web_user = c.web_user || "scan";
       this.web_password_set = !!c.web_password_set;
       this.web_password = "";
@@ -519,6 +516,10 @@ export default {
       this.engine_version = c.engine_version || "";
       this.signature_version = c.signature_version || "";
       this.signature_date = c.signature_date || "";
+      this.signature_age_hours =
+        typeof c.signature_age_hours === "number"
+          ? c.signature_age_hours
+          : null;
       this.port = c.port || 3310;
       this.vpn_address = c.vpn_address || "";
       this.lan_addresses = c.lan_addresses || [];
@@ -532,6 +533,7 @@ export default {
     },
     validateConfigureModule() {
       this.clearErrors(this);
+      this.ldapErrors = {};
       let ok = true;
       const fail = (field, msg) => {
         this.error[field] = msg;
@@ -550,8 +552,16 @@ export default {
       if (Number(this.stream_max_length_mb) < Number(this.max_file_size_mb))
         fail("stream_max_length_mb", "settings.stream_smaller_than_file");
       if (this.web_host) {
-        if (this.web_auth === "ldap" && !this.ldap_domain)
-          fail("ldap_domain", "common.required");
+        if (this.web_auth === "ldap") {
+          const ldapErrors = validateLdap(
+            this.ldap,
+            this.ldap_bind_password_set
+          );
+          for (const [field, msg] of ldapErrors)
+            this.$set(this.ldapErrors, field, msg);
+          if (ldapErrors.length && ok) this.$refs.ldap.focus(ldapErrors[0][0]);
+          if (ldapErrors.length) ok = false;
+        }
         if (this.web_auth === "local") {
           if (!this.web_user) fail("web_user", "common.required");
           if (!this.web_password && !this.web_password_set)
@@ -570,7 +580,13 @@ export default {
       this.loading.configureModule = false;
       let focusSet = false;
       for (const e of validationErrors) {
-        if (e.field !== "(root)") {
+        if (LDAP_FIELDS.includes(e.field)) {
+          this.$set(this.ldapErrors, e.field, "ldap_login." + e.error);
+          if (!focusSet && this.$refs.ldap) {
+            this.$refs.ldap.focus(e.field);
+            focusSet = true;
+          }
+        } else if (e.field !== "(root)") {
           this.error[e.field] = this.$t("settings." + e.error);
           if (!focusSet) {
             this.focusElement(e.field);
@@ -606,8 +622,7 @@ export default {
         lets_encrypt: this.lets_encrypt,
         http2https: this.http2https,
         web_auth: this.web_auth,
-        ldap_domain: this.web_auth === "ldap" ? this.ldap_domain : "",
-        ldap_group: this.ldap_group,
+        ...this.ldap,
         web_user: this.web_user,
         web_password: this.web_password,
         ip_allowlist: this.allowlistItems(),
